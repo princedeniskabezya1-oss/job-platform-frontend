@@ -316,6 +316,8 @@ state.sort = options.sort || "recent";
 
     if (!root()) return;
 
+    syncFeedHost(true, false);
+
 if (!getToken() && !state.guestMode) {
   root().innerHTML = `<div class="aift-feed-empty">Please log in to view the feed.</div>`;
   return;
@@ -452,6 +454,67 @@ await loadFeed({ reset: true });
       </section>
     `;
   }
+function syncFeedHost(active = true, reelsOpen = false){
+  const shouldActivate = Boolean(active);
+  const shouldHideNavigation = shouldActivate && Boolean(reelsOpen);
+
+  document.documentElement.classList.toggle("aift-feed-scrollbarless", shouldActivate);
+  document.body?.classList.toggle("aift-feed-scrollbarless", shouldActivate);
+
+  if(window.top !== window){
+    window.top.postMessage({
+      type:"aift:dashboard-chrome",
+      hidden:shouldHideNavigation
+    }, location.origin);
+
+    try{
+      const hostDocument = window.top.document;
+      let style = hostDocument.getElementById("aiftFeedHostStyle");
+
+      if(!style){
+        style = hostDocument.createElement("style");
+        style.id = "aiftFeedHostStyle";
+        style.textContent = `
+          html.aift-feed-host,
+          body.aift-feed-host{
+            scrollbar-width:none!important;
+            -ms-overflow-style:none!important;
+          }
+          html.aift-feed-host::-webkit-scrollbar,
+          body.aift-feed-host::-webkit-scrollbar{
+            width:0!important;
+            height:0!important;
+            display:none!important;
+          }
+          body.aift-feed-reels-open .aift-mobile-nav,
+          body.aift-feed-reels-open .mobile-nav,
+          body.aift-feed-reels-open .mobile-bottom-nav,
+          body.aift-feed-reels-open .bottom-nav,
+          body.aift-feed-reels-open [class*="mobile-nav"],
+          body.aift-feed-reels-open [class*="bottom-nav"]{
+            display:none!important;
+            visibility:hidden!important;
+            opacity:0!important;
+            pointer-events:none!important;
+          }
+          body.aift-feed-reels-open{
+            padding-bottom:0!important;
+          }
+        `;
+        hostDocument.head.appendChild(style);
+      }
+
+      hostDocument.documentElement.classList.toggle("aift-feed-host", shouldActivate);
+      hostDocument.body?.classList.toggle("aift-feed-host", shouldActivate);
+      hostDocument.body?.classList.toggle("aift-feed-reels-open", shouldHideNavigation);
+    }catch(error){
+      console.warn("Feed host chrome sync unavailable:", error?.message || error);
+    }
+  }
+}
+
+window.addEventListener("pagehide", () => syncFeedHost(false, false));
+
 function renderFamilyFeedCard(){
   const role = String(state.me?.role || localStorage.getItem("role") || "").toLowerCase();
   const eligibleRoles = new Set(["employer", "talent", "agent", "family"]);
@@ -701,6 +764,7 @@ async function loadReelBatch({ reset = false } = {}){
 }
 
 async function openReelMode(postId, refreshRecommendations = true){
+  syncFeedHost(true, true);
   stopFeedPlaybackForReels();
 
   if(refreshRecommendations && !state.guestMode){
@@ -708,7 +772,10 @@ async function openReelMode(postId, refreshRecommendations = true){
   }
   const videos = getVideoPosts();
 
-  if(!videos.length) return;
+  if(!videos.length){
+    syncFeedHost(true, false);
+    return;
+  }
 
   document.querySelectorAll(".aift-feed-video").forEach(v => v.pause());
 
@@ -1066,6 +1133,7 @@ function closeReelMode(){
         viewer.style.display = "none";
       }
 
+      syncFeedHost(true, false);
       observeFeedVideos();
     });
   });
