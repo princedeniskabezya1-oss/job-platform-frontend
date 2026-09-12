@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="messages.css?v=20260912-chat-video-1" />
+    <link rel="stylesheet" href="messages.css?v=20260912-whatsapp-video-1" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
       .aift-story-style-panel,
@@ -2355,19 +2355,55 @@
       </div>
     </div>
     <div id="mediaViewer" class="media-viewer hidden">
-      <div class="media-viewer-backdrop" onclick="closeMediaViewer()"></div>
-      <div class="media-viewer-content">
-        <button class="media-viewer-close" onclick="closeMediaViewer()">
-          ×</button
-        ><button class="media-viewer-download" onclick="downloadCurrentMedia()">
-          ↓</button
-        ><img id="mediaViewerImage" class="hidden" alt="" /><video
+      <div class="media-viewer-backdrop"></div>
+      <div
+        id="mediaViewerContent"
+        class="media-viewer-content"
+        onpointerdown="mediaViewerPointerDown(event)"
+        onpointermove="mediaViewerPointerMove(event)"
+        onpointerup="mediaViewerPointerUp(event)"
+        onpointercancel="mediaViewerPointerCancel()"
+      >
+        <div class="media-viewer-toolbar">
+          <button class="media-viewer-close" type="button" onclick="event.stopPropagation();closeMediaViewer()" aria-label="Close media">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg>
+          </button>
+          <div class="media-viewer-heading"><strong id="mediaViewerSender">Video</strong><span id="mediaViewerDate"></span></div>
+          <button class="media-viewer-download" type="button" onclick="event.stopPropagation();downloadCurrentMedia()" aria-label="Download">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>
+          </button>
+          <button class="media-viewer-more" type="button" onclick="event.stopPropagation();openViewerMessageOptions()" aria-label="More options">⋮</button>
+        </div>
+        <img id="mediaViewerImage" class="hidden" alt="" />
+        <video
           id="mediaViewerVideo"
           class="hidden"
-          controls
           playsinline
           preload="metadata"
+          onloadedmetadata="syncMediaViewerProgress()"
+          ontimeupdate="syncMediaViewerProgress()"
+          onplay="syncMediaViewerPlayState()"
+          onpause="syncMediaViewerPlayState()"
+          onended="syncMediaViewerPlayState()"
         ></video>
+        <button id="mediaViewerPlay" class="media-viewer-play hidden" type="button" onclick="event.stopPropagation();toggleMediaViewerPlayback()" aria-label="Play or pause">
+          <svg class="viewer-play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+          <svg class="viewer-pause-icon" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"></path></svg>
+        </button>
+        <div id="mediaViewerControls" class="media-viewer-controls hidden">
+          <span id="mediaViewerCurrent">0:00</span>
+          <input id="mediaViewerProgress" type="range" min="0" max="1000" value="0" aria-label="Video progress" oninput="seekMediaViewer(this.value)" onclick="event.stopPropagation()" />
+          <span id="mediaViewerDuration">0:00</span>
+        </div>
+        <div id="mediaViewerReactions" class="media-viewer-reactions hidden" onclick="event.stopPropagation()">
+          <button type="button" onclick="replyFromMediaViewer()">Reply</button>
+          <button type="button" onclick="reactFromMediaViewer('👍')">👍</button>
+          <button type="button" onclick="reactFromMediaViewer('❤️')">❤️</button>
+          <button type="button" onclick="reactFromMediaViewer('😂')">😂</button>
+          <button type="button" onclick="reactFromMediaViewer('😮')">😮</button>
+          <button type="button" onclick="reactFromMediaViewer('😢')">😢</button>
+          <button type="button" onclick="openViewerReactionPicker()">＋</button>
+        </div>
       </div>
     </div>
     <div id="callModal" class="call-modal hidden">
@@ -2566,7 +2602,7 @@
         </button>
       </div>
     </div>
-    <script src="messages.js?v=20260912-chat-video-1"></script>
+    <script src="messages.js?v=20260912-whatsapp-video-1"></script>
     <script>
       (function () {
         const storyState = {
