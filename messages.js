@@ -9,7 +9,7 @@ const state = {
   token:"", role:"", me:null, myId:"", socket:null,
   conversations:[], filteredConversations:[], activeConversation:null, activeOtherUser:null, messages:[], callLogs:[], activeCallLogs:[], callLogsLoading:false,
   onlineUsers:new Map(), groupSelected:new Map(), groupSearchResults:[], groupCreatorStep:1, groupCreatorMode:"create", groupPhoto:"", conversationFilter:"all", conversationSearch:"", userSearchTimer:null, conversationSearchTimer:null,
-  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null, composerConversationId:"", conversationOpenToken:0, conversationOpenedAt:new Map(),
+  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], attachmentKind:"", attachmentPreviewUrl:"", mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null, composerConversationId:"", conversationOpenToken:0, conversationOpenedAt:new Map(),
   isSending:false, isLoadingMessages:false, messagesPageBefore:null, hasMoreMessages:true, confirmCallback:null, remoteTypingTimer:null,
   unreadBelow:false, unreadBelowCount:0, lastKnownScrollHeight:0,
   currentCall:null, currentCallLogId:null, currentCallLogFinalized:false, localStream:null, remoteStream:null, peerConnection:null, peerConnections:new Map(), remoteStreams:new Map(), callParticipants:new Map(), remoteCameraStates:new Map(), pendingIceCandidates:new Map(), disconnectTimers:new Map(), screenStream:null,
@@ -217,6 +217,7 @@ async function openConversation(id){
   }
 
   if(typeof window.discardVoiceRecordingForConversationSwitch==="function")window.discardVoiceRecordingForConversationSwitch();
+  if(state.attachments.length || state.attachment)clearAttachment();
   saveActiveConversationDraft({refreshList:false});
   const targetId=String(id),openToken=++state.conversationOpenToken;rememberConversationOpened(targetId);const cached=state.conversations.find(item=>String(conversationId(item))===targetId)||null;
   showMessagesState();hideConversationSidebarOnMobile();state.isLoadingMessages=true;state.messages=[];state.activeCallLogs=[];state.messagesPageBefore=null;state.hasMoreMessages=true;hideJumpButton();restoreConversationDraft(targetId);renderMessagesSkeleton();
@@ -299,7 +300,7 @@ function getPrimaryAttachment(message){if(Array.isArray(message.attachments)&&me
 function normalizeAttachmentType(type=""){const t=String(type).toLowerCase();if(t.includes("image"))return"image";if(t.includes("video"))return"video";if(t.includes("audio"))return"audio";if(t.includes("pdf")||t.includes("document"))return"document";return t||"file";}
 function attachmentHtml(a,message){const url=a.secureUrl||a.url||"";if(!url)return"";const type=normalizeAttachmentType(a.type||a.mimeType||message.fileType||""),name=a.originalName||message.fileName||"Attachment";
   if(type==="image")return `<div style="position:relative"><img class="message-file-image" src="${esc(url)}" alt="${esc(name)}" loading="lazy" onclick="event.stopPropagation();openMediaViewer('${esc(url)}','image')">${!isMyMessage(message)?`<button class="asset-save-btn" onclick="event.stopPropagation();saveReceivedAssetById('${esc(messageId(message))}')">+</button>`:""}</div>`;
-  if(type==="video")return `<video class="message-file-video" src="${esc(url)}" controls onclick="event.stopPropagation();openMediaViewer('${esc(url)}','video')"></video>`;
+  if(type==="video")return `<video class="message-file-video" src="${esc(url)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video>`;
   if(type==="audio")return `<audio class="message-file-audio" src="${esc(url)}" controls></audio>`;
   return `<a class="file-card" href="${esc(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><div><strong>${esc(name)}</strong><span>${esc(fileSize(a.size||message.fileSize||0))}</span></div></a>`;
 }
@@ -360,19 +361,255 @@ function replaceTempMessage(tempId,saved){const i=state.messages.findIndex(x=>St
 async function retryFailedMessage(id){const failed=state.messages.find(x=>String(messageId(x))===String(id));if(!failed?._retry)return toast("This message can no longer be retried");if(state.isSending)return;const r=failed._retry;state.messages=state.messages.filter(x=>x!==failed);if(r.file){state.attachment=r.file;renderAttachmentPreview(r.file);}if(r.replyTo)state.replyTo=r.replyTo;const input=document.getElementById("messageInput");if(input)input.value=r.text||"";await sendMessage();}
 
 function toggleAttachmentMenu(){document.getElementById("attachmentMenu")?.classList.toggle("hidden");}
-function chooseAttachment(type){const input=document.getElementById("fileInput");if(!input)return;const accepts={image:"image/*",video:"video/*",audio:"audio/*",document:".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"};input.accept=accepts[type]||"*/*";document.getElementById("attachmentMenu")?.classList.add("hidden");input.click();}
-function normalizeSelectedFiles(input){return input instanceof File? [input]:Array.from(input||[]).filter(file=>file instanceof File);}
-function revokeMediaReviewUrls(){state.mediaReviewUrls.forEach(url=>URL.revokeObjectURL(url));state.mediaReviewUrls=[];}
-function addMediaReviewFiles(input){const files=normalizeSelectedFiles(input);for(const file of files){if(file.size>50*1024*1024){toast(file.name+" is larger than 50MB");continue;}if(state.attachments.length>=10){toast("You can send up to 10 files at once");break;}state.attachments.push(file);}state.attachment=state.attachments[0]||null;state.mediaReviewIndex=Math.min(state.mediaReviewIndex,Math.max(0,state.attachments.length-1));renderMediaReview();}
-function handleAttachmentSelected(input){const files=normalizeSelectedFiles(input);if(!files.length)return;const mediaOnly=files.every(file=>/^(image|video)\//.test(file.type));if(mediaOnly){addMediaReviewFiles(files);openMediaReview();return;}const file=files[0];if(file.size>50*1024*1024)return toast("File is too large. Maximum size is 50MB.");state.attachments=[file];state.attachment=file;renderAttachmentPreview(file);autoGrowComposer();}
-function openMediaReview(){if(!state.attachments.length)return;document.getElementById("mediaReviewModal")?.classList.remove("hidden");renderMediaReview();}
-function closeMediaReview(options={}){document.getElementById("mediaReviewModal")?.classList.add("hidden");if(options.discard!==false)clearAttachment();}
-function selectMediaReview(index){state.mediaReviewIndex=Math.max(0,Math.min(index,state.attachments.length-1));renderMediaReview();}
-function removeMediaReviewFile(index){state.attachments.splice(index,1);state.attachment=state.attachments[0]||null;if(!state.attachments.length){closeMediaReview();return;}state.mediaReviewIndex=Math.min(state.mediaReviewIndex,state.attachments.length-1);renderMediaReview();}
-function renderMediaReview(){const main=document.getElementById("mediaReviewMain"),thumbs=document.getElementById("mediaReviewThumbs");if(!main||!thumbs)return;revokeMediaReviewUrls();state.mediaReviewUrls=state.attachments.map(file=>URL.createObjectURL(file));const active=state.attachments[state.mediaReviewIndex],url=state.mediaReviewUrls[state.mediaReviewIndex];if(!active||!url)return;main.innerHTML=active.type.startsWith("video/")?`<video src="${esc(url)}" controls autoplay playsinline></video>`:`<img src="${esc(url)}" alt="${esc(active.name)}">`;thumbs.innerHTML=state.attachments.map((file,index)=>{const source=state.mediaReviewUrls[index],media=file.type.startsWith("video/")?`<video src="${esc(source)}" muted></video>`:`<img src="${esc(source)}" alt="">`;return `<div class="media-review-thumb ${index===state.mediaReviewIndex?"active":""}" onclick="selectMediaReview(${index})">${media}<button type="button" onclick="event.stopPropagation();removeMediaReviewFile(${index})">×</button></div>`;}).join("")+`<button class="media-review-add" type="button" onclick="document.getElementById('mediaReviewInput').click()" aria-label="Add another photo or video">+</button>`;}
-async function sendMediaReview(){const caption=document.getElementById("mediaReviewCaption"),input=document.getElementById("messageInput");if(input&&caption?.value.trim())input.value=caption.value.trim();document.getElementById("mediaReviewModal")?.classList.add("hidden");await sendMessage();if(caption)caption.value="";}
-function renderAttachmentPreview(file){const box=document.getElementById("attachmentPreview");if(!box)return;const type=normalizeAttachmentType(file.type),url=URL.createObjectURL(file),preview=type==="image"?`<img src="${esc(url)}" alt="">`:type==="video"?`<video src="${esc(url)}" controls></video>`:'<div class="preview-file-icon">▤</div>';box.innerHTML=`<div class="preview-card">${preview}<div class="preview-info"><strong>${esc(file.name)}</strong><span>${esc(fileSize(file.size))}</span></div><button onclick="clearAttachment()">Remove</button></div>`;box.classList.remove("hidden");}
-function clearAttachment(){revokeMediaReviewUrls();state.attachments=[];state.attachment=null;state.mediaReviewIndex=0;["fileInput","cameraInput","mediaReviewInput"].forEach(id=>{const input=document.getElementById(id);if(input)input.value="";});const box=document.getElementById("attachmentPreview");if(box){box.classList.add("hidden");box.innerHTML="";}autoGrowComposer();}
+
+function attachmentAccept(kind){
+  return {
+    image:"image/*",
+    video:"video/*",
+    audio:"audio/*",
+    document:".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+  }[kind] || "*/*";
+}
+
+function attachmentMatchesKind(file,kind){
+  if(!(file instanceof File))return false;
+  const type=String(file.type||"").toLowerCase();
+  const extension=String(file.name||"").split(".").pop().toLowerCase();
+  const imageExtensions=["jpg","jpeg","png","webp","gif","heic","heif","bmp","avif"];
+  const videoExtensions=["mp4","mov","m4v","webm","avi","mkv","3gp","mpeg","mpg"];
+  const audioExtensions=["mp3","m4a","aac","wav","ogg","flac","opus"];
+  if(kind==="image")return type.startsWith("image/")||(!type&&imageExtensions.includes(extension));
+  if(kind==="video")return type.startsWith("video/")||(!type&&videoExtensions.includes(extension));
+  if(kind==="audio")return type.startsWith("audio/")||(!type&&audioExtensions.includes(extension));
+  if(kind==="document")return !/^(image|video|audio)\//.test(type)&&!imageExtensions.includes(extension)&&!videoExtensions.includes(extension)&&!audioExtensions.includes(extension);
+  return true;
+}
+
+function chooseAttachment(type){
+  const input=document.getElementById("fileInput");
+  if(!input)return;
+  stopAttachmentPreviewPlayback();
+  state.attachmentKind=type;
+  input.value="";
+  input.accept=attachmentAccept(type);
+  input.multiple=type==="image"||type==="video";
+  document.getElementById("attachmentMenu")?.classList.add("hidden");
+  input.click();
+}
+
+function normalizeSelectedFiles(input){
+  return input instanceof File?[input]:Array.from(input||[]).filter(file=>file instanceof File);
+}
+
+function stopAttachmentPreviewPlayback(){
+  document.querySelectorAll("#mediaReviewModal video, #mediaReviewModal audio, #attachmentPreview video, #attachmentPreview audio").forEach(media=>{
+    try{
+      media.pause();
+      media.removeAttribute("src");
+      media.load?.();
+    }catch{}
+  });
+}
+
+function revokeAttachmentPreviewUrl(){
+  if(state.attachmentPreviewUrl){
+    URL.revokeObjectURL(state.attachmentPreviewUrl);
+    state.attachmentPreviewUrl="";
+  }
+}
+
+function revokeMediaReviewUrls(){
+  stopAttachmentPreviewPlayback();
+  state.mediaReviewUrls.forEach(url=>URL.revokeObjectURL(url));
+  state.mediaReviewUrls=[];
+}
+
+function configureMediaReviewInput(){
+  const input=document.getElementById("mediaReviewInput");
+  if(!input)return;
+  input.accept=attachmentAccept(state.attachmentKind||"image");
+  input.multiple=true;
+}
+
+function addMediaReviewFiles(input){
+  const selected=normalizeSelectedFiles(input);
+  const kind=state.attachmentKind||(
+    selected[0]?.type.startsWith("video/")?"video":"image"
+  );
+  state.attachmentKind=kind;
+
+  const files=selected.filter(file=>{
+    if(!attachmentMatchesKind(file,kind)){
+      toast(kind==="video"?"Please choose video files only.":"Please choose photo files only.");
+      return false;
+    }
+    return true;
+  });
+
+  for(const file of files){
+    if(file.size>50*1024*1024){
+      toast(file.name+" is larger than 50MB");
+      continue;
+    }
+    if(state.attachments.length>=10){
+      toast("You can send up to 10 files at once");
+      break;
+    }
+    state.attachments.push(file);
+  }
+
+  state.attachment=state.attachments[0]||null;
+  state.mediaReviewIndex=Math.min(state.mediaReviewIndex,Math.max(0,state.attachments.length-1));
+  configureMediaReviewInput();
+  renderMediaReview();
+}
+
+function handleAttachmentSelected(input){
+  const files=normalizeSelectedFiles(input);
+  if(!files.length)return;
+
+  const kind=state.attachmentKind||"document";
+  const valid=files.filter(file=>attachmentMatchesKind(file,kind));
+
+  if(valid.length!==files.length){
+    toast(
+      kind==="image"?"Please choose photo files only.":
+      kind==="video"?"Please choose video files only.":
+      kind==="audio"?"Please choose audio files only.":
+      "Please choose document files only."
+    );
+  }
+  if(!valid.length)return;
+
+  if(kind==="image"||kind==="video"){
+    state.attachments=[];
+    addMediaReviewFiles(valid);
+    if(state.attachments.length)openMediaReview();
+    return;
+  }
+
+  const file=valid[0];
+  if(file.size>50*1024*1024)return toast("File is too large. Maximum size is 50MB.");
+  state.attachments=[file];
+  state.attachment=file;
+  renderAttachmentPreview(file);
+  autoGrowComposer();
+}
+
+function openMediaReview(){
+  if(!state.attachments.length)return;
+  configureMediaReviewInput();
+  document.getElementById("mediaReviewModal")?.classList.remove("hidden");
+  renderMediaReview();
+}
+
+function closeMediaReview(options={}){
+  stopAttachmentPreviewPlayback();
+  document.getElementById("mediaReviewModal")?.classList.add("hidden");
+  if(options.discard!==false)clearAttachment();
+}
+
+function selectMediaReview(index){
+  stopAttachmentPreviewPlayback();
+  state.mediaReviewIndex=Math.max(0,Math.min(index,state.attachments.length-1));
+  renderMediaReview();
+}
+
+function removeMediaReviewFile(index){
+  stopAttachmentPreviewPlayback();
+  state.attachments.splice(index,1);
+  state.attachment=state.attachments[0]||null;
+  if(!state.attachments.length){
+    closeMediaReview();
+    return;
+  }
+  state.mediaReviewIndex=Math.min(state.mediaReviewIndex,state.attachments.length-1);
+  renderMediaReview();
+}
+
+function renderMediaReview(){
+  const main=document.getElementById("mediaReviewMain"),thumbs=document.getElementById("mediaReviewThumbs");
+  if(!main||!thumbs)return;
+  revokeMediaReviewUrls();
+  state.mediaReviewUrls=state.attachments.map(file=>URL.createObjectURL(file));
+  const active=state.attachments[state.mediaReviewIndex],url=state.mediaReviewUrls[state.mediaReviewIndex];
+  if(!active||!url)return;
+
+  main.innerHTML=active.type.startsWith("video/")
+    ?`<video src="${esc(url)}" controls playsinline preload="metadata"></video>`
+    :`<img src="${esc(url)}" alt="${esc(active.name)}">`;
+
+  thumbs.innerHTML=state.attachments.map((file,index)=>{
+    const source=state.mediaReviewUrls[index];
+    const media=file.type.startsWith("video/")
+      ?`<video src="${esc(source)}" muted playsinline preload="metadata"></video>`
+      :`<img src="${esc(source)}" alt="">`;
+    return `<div class="media-review-thumb ${index===state.mediaReviewIndex?"active":""}" onclick="selectMediaReview(${index})">${media}<button type="button" onclick="event.stopPropagation();removeMediaReviewFile(${index})">×</button></div>`;
+  }).join("")+`<button class="media-review-add" type="button" onclick="openMoreMediaReview()" aria-label="Add another ${state.attachmentKind==="video"?"video":"photo"}">+</button>`;
+}
+
+function openMoreMediaReview(){
+  configureMediaReviewInput();
+  const input=document.getElementById("mediaReviewInput");
+  if(input){
+    input.value="";
+    input.click();
+  }
+}
+
+async function sendMediaReview(){
+  const caption=document.getElementById("mediaReviewCaption"),input=document.getElementById("messageInput");
+  if(input&&caption?.value.trim())input.value=caption.value.trim();
+  stopAttachmentPreviewPlayback();
+  document.getElementById("mediaReviewModal")?.classList.add("hidden");
+  await sendMessage();
+  if(caption)caption.value="";
+}
+
+function renderAttachmentPreview(file){
+  const box=document.getElementById("attachmentPreview");
+  if(!box)return;
+  stopAttachmentPreviewPlayback();
+  revokeAttachmentPreviewUrl();
+  const type=normalizeAttachmentType(file.type);
+  state.attachmentPreviewUrl=URL.createObjectURL(file);
+  const url=state.attachmentPreviewUrl;
+  const preview=type==="image"
+    ?`<img src="${esc(url)}" alt="">`
+    :type==="video"
+      ?`<video src="${esc(url)}" controls playsinline preload="metadata"></video>`
+      :'<div class="preview-file-icon">▤</div>';
+  box.innerHTML=`<div class="preview-card">${preview}<div class="preview-info"><strong>${esc(file.name)}</strong><span>${esc(fileSize(file.size))}</span></div><button onclick="clearAttachment()">Remove</button></div>`;
+  box.classList.remove("hidden");
+}
+
+function clearAttachment(){
+  stopAttachmentPreviewPlayback();
+  revokeMediaReviewUrls();
+  revokeAttachmentPreviewUrl();
+  state.attachments=[];
+  state.attachment=null;
+  state.attachmentKind="";
+  state.mediaReviewIndex=0;
+  ["fileInput","cameraInput","mediaReviewInput"].forEach(id=>{
+    const input=document.getElementById(id);
+    if(input)input.value="";
+  });
+  const main=document.getElementById("mediaReviewMain");
+  const thumbs=document.getElementById("mediaReviewThumbs");
+  const modal=document.getElementById("mediaReviewModal");
+  if(main)main.innerHTML="";
+  if(thumbs)thumbs.innerHTML="";
+  modal?.classList.add("hidden");
+  const box=document.getElementById("attachmentPreview");
+  if(box){
+    box.classList.add("hidden");
+    box.innerHTML="";
+  }
+  autoGrowComposer();
+}
+
+window.addEventListener("pagehide",()=>{stopAttachmentPreviewPlayback();revokeMediaReviewUrls();revokeAttachmentPreviewUrl();});
 
 function handleRealtimeMessage(message){
   if(!message)return;const mine=String(senderId(message))===String(state.myId);if(!mine)safePlay(state.messageTone);const activeId=state.activeConversation?conversationId(state.activeConversation):"",msgCid=getId(message.conversationId),sameConversation=activeId&&msgCid&&String(activeId)===String(msgCid),otherId=getId(state.activeOtherUser),sameDirect=otherId&&(String(senderId(message))===String(otherId)||String(receiverId(message))===String(otherId));
@@ -521,8 +758,8 @@ function openCameraGallery(){document.getElementById("cameraInput")?.click();}
 function toggleCameraEnhancement(){cameraEnhanced=!cameraEnhanced;document.getElementById("cameraVideo")?.style.setProperty("filter",cameraEnhanced?"contrast(1.06) saturate(1.08)":"none");document.querySelector(".camera-enhance")?.classList.toggle("active",cameraEnhanced);}
 async function toggleCameraFlash(){const track=cameraStream?.getVideoTracks?.()[0],capabilities=track?.getCapabilities?.()||{};if(!track||!capabilities.torch)return toast("Flash is not available on this camera");try{cameraFlashEnabled=!cameraFlashEnabled;await track.applyConstraints({advanced:[{torch:cameraFlashEnabled}]});document.getElementById("cameraFlashBtn")?.classList.toggle("active",cameraFlashEnabled);}catch{cameraFlashEnabled=false;toast("Unable to control the flash");}}
 async function switchCamera(){cameraFacingMode=cameraFacingMode==="environment"?"user":"environment";closeCameraModal();await openCameraCapture();}
-function captureCameraPhoto(){const v=document.getElementById("cameraVideo"),c=document.getElementById("cameraCanvas");if(!v||!c)return;c.width=v.videoWidth;c.height=v.videoHeight;const context=c.getContext("2d");if(cameraEnhanced)context.filter="contrast(1.06) saturate(1.08)";context.drawImage(v,0,0,c.width,c.height);c.toBlob(blob=>{if(!blob)return;const f=new File([blob],"camera-photo-"+Date.now()+".jpg",{type:"image/jpeg"});closeCameraModal();state.attachments=[];state.attachment=null;addMediaReviewFiles([f]);openMediaReview();},"image/jpeg",.92);}
-function handleCameraCapture(files){closeCameraModal();state.attachments=[];state.attachment=null;addMediaReviewFiles(files);openMediaReview();}
+function captureCameraPhoto(){const v=document.getElementById("cameraVideo"),c=document.getElementById("cameraCanvas");if(!v||!c)return;c.width=v.videoWidth;c.height=v.videoHeight;const context=c.getContext("2d");if(cameraEnhanced)context.filter="contrast(1.06) saturate(1.08)";context.drawImage(v,0,0,c.width,c.height);c.toBlob(blob=>{if(!blob)return;const f=new File([blob],"camera-photo-"+Date.now()+".jpg",{type:"image/jpeg"});closeCameraModal();state.attachments=[];state.attachment=null;state.attachmentKind="image";addMediaReviewFiles([f]);openMediaReview();},"image/jpeg",.92);}
+function handleCameraCapture(files){const selected=normalizeSelectedFiles(files);closeCameraModal();state.attachments=[];state.attachment=null;state.attachmentKind=selected[0]?.type.startsWith("video/")?"video":"image";addMediaReviewFiles(selected);openMediaReview();}
 
 let RTC_CONFIG={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}]};
 async function loadRtcConfig(){try{const response=await fetch(API+"/api/rtc-config",{cache:"no-store"}),config=await response.json();if(response.ok&&Array.isArray(config?.iceServers)&&config.iceServers.length)RTC_CONFIG={iceServers:config.iceServers,iceCandidatePoolSize:8};}catch(error){console.warn("Using default RTC network configuration:",error.message);}}
@@ -641,7 +878,7 @@ function bindEvents(){
   document.addEventListener("pointerdown",unlockAiftCallSounds,{once:true,passive:true});
   document.addEventListener("keydown",unlockAiftCallSounds,{once:true});
   const input=document.getElementById("messageInput");if(input){input.addEventListener("input",()=>{autoGrowComposer();saveActiveConversationDraft();if(state.activeOtherUser&&state.socket){state.socket.emit("typing",{to:getId(state.activeOtherUser)});clearTimeout(state.typingTimer);state.typingTimer=setTimeout(()=>state.socket.emit("stopTyping",{to:getId(state.activeOtherUser)}),900);}});input.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const isMobileComposer=window.matchMedia("(max-width:760px)").matches||navigator.maxTouchPoints>0;if(isMobileComposer)return;if(!e.shiftKey){e.preventDefault();sendMessage();}});input.addEventListener("select",()=>{state.composerSelectionStart=input.selectionStart??input.value.length;state.composerSelectionEnd=input.selectionEnd??input.value.length;});input.addEventListener("focus",()=>{if(state.pickerOpen)closeChatPicker();});}
-  document.getElementById("fileInput")?.addEventListener("change",e=>{if(e.target.files?.length)handleAttachmentSelected(e.target.files);});document.getElementById("cameraInput")?.addEventListener("change",e=>{if(e.target.files?.length)handleCameraCapture(e.target.files);});document.getElementById("mediaReviewInput")?.addEventListener("change",e=>{if(e.target.files?.length)addMediaReviewFiles(e.target.files);e.target.value="";});document.getElementById("stickerImportInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleStickerImport(f);e.target.value="";});document.getElementById("gifSearchInput")?.addEventListener("input",e=>{clearTimeout(state.gifSearchTimer);state.gifSearchTimer=setTimeout(()=>searchGifLocal(e.target.value),250);});
+  document.getElementById("fileInput")?.addEventListener("change",e=>{if(e.target.files?.length)handleAttachmentSelected(e.target.files);e.target.value="";});document.getElementById("cameraInput")?.addEventListener("change",e=>{if(e.target.files?.length)handleCameraCapture(e.target.files);});document.getElementById("mediaReviewInput")?.addEventListener("change",e=>{if(e.target.files?.length)addMediaReviewFiles(e.target.files);e.target.value="";});document.getElementById("stickerImportInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleStickerImport(f);e.target.value="";});document.getElementById("gifSearchInput")?.addEventListener("input",e=>{clearTimeout(state.gifSearchTimer);state.gifSearchTimer=setTimeout(()=>searchGifLocal(e.target.value),250);});
   document.getElementById("conversationSearch")?.addEventListener("input",e=>handleConversationSearchInput(e.target.value));document.getElementById("userSearchInput")?.addEventListener("input",e=>{clearTimeout(state.userSearchTimer);state.userSearchTimer=setTimeout(()=>searchUsers(e.target.value),280);});document.getElementById("groupMemberSearch")?.addEventListener("input",e=>{clearTimeout(state.userSearchTimer);state.userSearchTimer=setTimeout(()=>searchGroupMembers(e.target.value),250);});document.getElementById("groupPhotoInput")?.addEventListener("change",e=>{prepareGroupPhoto(e.target.files?.[0]);e.target.value="";});document.getElementById("groupNameInput")?.addEventListener("input",e=>{const count=document.getElementById("groupNameCount");if(count)count.textContent=String(e.target.value.length);});
   const box=getMessagesBox();if(box)box.addEventListener("scroll",()=>{updateJumpButtonFromScroll();if(box.scrollTop<80)loadOlderMessages();positionMessageReactionBar();});
   document.addEventListener("click",e=>{const menu=document.getElementById("attachmentMenu");if(menu&&!menu.contains(e.target)&&!e.target.closest(".composer-icon"))menu.classList.add("hidden");if(!e.target.closest(".call-start-wrap"))closeCallStartMenu();if(!e.target.closest(".sidebar-header-actions")&&!e.target.closest("#createChatMenu"))closeCreateChatMenu();if(!e.target.closest("#selectionMoreMenu")&&!e.target.closest(".message-action-bar"))closeSelectionMoreMenu();if(!e.target.closest("#chatMoreMenu")&&!e.target.closest("#chatMoreBtn"))closeChatMoreMenu();const drawer=document.getElementById("chatInfoDrawer");if(drawer&&!drawer.classList.contains("hidden")&&e.target===drawer)closeChatInfo();const modal=document.getElementById("confirmModal");if(modal&&!modal.classList.contains("hidden")&&e.target===modal)closeConfirmModal();});
