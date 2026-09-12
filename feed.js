@@ -390,10 +390,6 @@ await loadFeed({ reset: true });
         </section>
 
         ${renderFamilyFeedCard()}
-        <div id="aiftPullRefresh" class="aift-pull-refresh" aria-live="polite">
-          <span class="aift-pull-refresh-icon">↓</span>
-          <span class="aift-pull-refresh-text">Pull to refresh</span>
-        </div>
         <section id="aiftFeedList" class="aift-feed-list"></section>
 <div id="aiftInfiniteSentinel" class="aift-infinite-sentinel"></div>
       </div>
@@ -457,9 +453,13 @@ await loadFeed({ reset: true });
     `;
   }
 function renderFamilyFeedCard(){
+  const role = String(state.me?.role || localStorage.getItem("role") || "").toLowerCase();
+  const eligibleRoles = new Set(["employer", "talent", "agent", "family"]);
+
   if(
     state.mode !== "home" ||
     state.guestMode ||
+    !eligibleRoles.has(role) ||
     state.me?.familyProfile?.onboardingCompleted === true ||
     sessionStorage.getItem("aiftFamilyFeedCardDismissed") === "1"
   ){
@@ -470,7 +470,12 @@ function renderFamilyFeedCard(){
     <aside id="aiftFamilyFeedCard" class="aift-family-feed-card" aria-label="AIFT Family">
       <button class="aift-family-feed-close" type="button" aria-label="Hide AIFT Family" onclick="AIFTFeed.dismissFamilyCard(event)">×</button>
       <div class="aift-family-feed-mark" aria-hidden="true">
-        <span>AF</span>
+        <svg viewBox="0 0 32 32">
+          <circle cx="12" cy="11" r="4"></circle>
+          <circle cx="22" cy="13" r="3.5"></circle>
+          <path d="M4.5 25c.7-5 3.2-7.4 7.5-7.4s6.8 2.4 7.5 7.4"></path>
+          <path d="M18 19c1.2-1.2 2.7-1.8 4.5-1.8 3.2 0 5.1 1.9 5.7 5.8"></path>
+        </svg>
         <i></i>
       </div>
       <div class="aift-family-feed-copy">
@@ -510,11 +515,6 @@ async function refreshPersonalizedFeed(){
   if(state.mode !== "home" || state.loading || state.pullRefreshing) return;
 
   state.pullRefreshing = true;
-  const indicator = document.getElementById("aiftPullRefresh");
-  indicator?.classList.add("is-refreshing");
-  const label = indicator?.querySelector(".aift-pull-refresh-text");
-  if(label) label.textContent = "Refreshing for you...";
-
   state.feedSeed = String(Date.now()) + "-" + Math.random().toString(36).slice(2);
   sessionStorage.setItem("aiftFeedSeed", state.feedSeed);
 
@@ -523,14 +523,8 @@ async function refreshPersonalizedFeed(){
   }finally{
     state.pullRefreshing = false;
     state.pullDistance = 0;
-    if(indicator){
-      indicator.style.setProperty("--pull-distance", "0px");
-      indicator.classList.remove("is-ready", "is-refreshing", "is-visible");
-    }
-    if(label) label.textContent = "Pull to refresh";
   }
 }
-
 function setupFeedRefresh(){
   if(state.feedRefreshReady) return;
   state.feedRefreshReady = true;
@@ -566,19 +560,8 @@ function setupFeedRefresh(){
 
   document.addEventListener("touchmove", event => {
     if(state.pullStartY === null || state.pullRefreshing) return;
-    const rawDistance = (event.touches[0]?.clientY ?? state.pullStartY) - state.pullStartY;
-    if(rawDistance <= 0) return;
-
-    state.pullDistance = Math.min(rawDistance * 0.48, 96);
-    const indicator = document.getElementById("aiftPullRefresh");
-    if(!indicator) return;
-
-    indicator.style.setProperty("--pull-distance", state.pullDistance + "px");
-    indicator.classList.add("is-visible");
-    indicator.classList.toggle("is-ready", state.pullDistance >= 64);
-    const label = indicator.querySelector(".aift-pull-refresh-text");
-    if(label) label.textContent = state.pullDistance >= 64 ? "Release to refresh" : "Pull to refresh";
-
+    const distance = (event.touches[0]?.clientY ?? state.pullStartY) - state.pullStartY;
+    state.pullDistance = Math.max(0, Math.min(distance * 0.48, 96));
     if(state.pullDistance >= 8 && event.cancelable) event.preventDefault();
   }, { passive: false });
 
@@ -586,21 +569,10 @@ function setupFeedRefresh(){
     if(state.pullStartY === null) return;
     const shouldRefresh = state.pullDistance >= 64;
     state.pullStartY = null;
-
-    if(shouldRefresh){
-      refreshPersonalizedFeed();
-      return;
-    }
-
-    const indicator = document.getElementById("aiftPullRefresh");
-    if(indicator){
-      indicator.style.setProperty("--pull-distance", "0px");
-      indicator.classList.remove("is-ready", "is-visible");
-    }
     state.pullDistance = 0;
+    if(shouldRefresh) refreshPersonalizedFeed();
   }, { passive: true });
 }
-
 function updateSoundBadges(){
   document.querySelectorAll(".aift-video-sound, .aift-reel-sound").forEach(btn => {
     btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
