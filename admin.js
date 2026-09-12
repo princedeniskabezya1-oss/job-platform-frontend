@@ -61,6 +61,7 @@ const adminState = {
 };
 
 const ADMIN_SECTIONS = {
+  support: { title: "Support Tickets", subtitle: "Review and reply to AIFT support requests.", loader: "loadAdminSupportTickets" },
   overview: {
     title: "Overview",
     subtitle: "Monitor users, jobs, schools, reports, and platform activity.",
@@ -7774,3 +7775,39 @@ function toggleNotificationCenter(){
 window.toggleNotificationCenter = toggleNotificationCenter;
 
 (function loadAiftGlobalCalls(){if(window.__aiftGlobalCalls||/\/messages\.html$/i.test(location.pathname))return;const script=document.createElement("script");script.src="aift-global-calls.js";document.head.appendChild(script);}());
+
+
+
+/* Support tickets share the existing backend queue, including public Kabezya requests. */
+async function loadAdminSupportTickets(page = 1){
+  const section = document.getElementById('supportSection');
+  section.innerHTML = '<p>Loading support tickets…</p>';
+  try {
+    const data = await adminRequest('/api/support/admin/tickets?limit=25&page='+page);
+    section.replaceChildren();
+    const heading=document.createElement('h2');heading.textContent='Support Tickets';section.append(heading);
+    const note=document.createElement('p');note.textContent='Visitor contact details are self-reported. Visitors read your saved replies through Check ticket in their chat.';section.append(note);
+    const refresh=document.createElement('button');refresh.className='admin-btn';refresh.textContent='Refresh';refresh.onclick=()=>loadAdminSupportTickets(page);section.append(refresh);
+    if(!data.tickets.length){const empty=document.createElement('p');empty.textContent='No support tickets.';section.append(empty);}
+    for(const ticket of data.tickets){
+      const card=document.createElement('article');card.className='admin-card';card.style.cssText='padding:18px;margin-top:14px;overflow-wrap:anywhere';
+      const title=document.createElement('h3');title.textContent=ticket.ticketNumber+' · '+(ticket.subject || 'Support request');card.append(title);
+      const contact=document.createElement('p');contact.textContent=ticket.name+' · '+ticket.email+' · '+ticket.status.replaceAll('_',' ');card.append(contact);
+      const detail=document.createElement('p');detail.textContent=ticket.additionalInfo || '';detail.style.whiteSpace='pre-wrap';card.append(detail);
+      if(ticket.conversation?.length){const disclosure=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Attached chat';disclosure.append(summary);for(const m of ticket.conversation){const p=document.createElement('p');p.textContent=m.role+': '+m.content;disclosure.append(p);}card.append(disclosure);}
+      for(const reply of ticket.replies || []){const p=document.createElement('p');p.textContent=(reply.senderType==='support'?'AIFT: ':'User: ')+reply.message;p.style.whiteSpace='pre-wrap';card.append(p);}
+      const form=document.createElement('form');
+      const label=document.createElement('label');label.textContent='Reply to this ticket';
+      const input=document.createElement('textarea');input.required=true;input.maxLength=10000;input.style.cssText='display:block;width:100%;min-height:80px;margin:8px 0';label.append(input);form.append(label);
+      const send=document.createElement('button');send.type='submit';send.className='admin-btn';send.textContent='Save reply';form.append(send);
+      const feedback=document.createElement('p');feedback.setAttribute('role','status');
+      form.onsubmit=async e=>{e.preventDefault();if(send.disabled)return;send.disabled=true;try{await adminJSON('/api/support/admin/tickets/'+ticket._id+'/replies','POST',{message:input.value});await loadAdminSupportTickets(page);}catch(error){feedback.textContent=error.message;send.disabled=false;}};
+      if(ticket.status!=='closed')card.append(form);
+      const statusLabel=document.createElement('label');statusLabel.textContent='Ticket status ';const select=document.createElement('select');
+      for(const value of ['open','in_progress','waiting_for_student','waiting_for_user','resolved','closed']){const option=document.createElement('option');option.value=value;option.textContent=value.replaceAll('_',' ');option.selected=value===ticket.status;select.append(option);}statusLabel.append(select);card.append(statusLabel);
+      const update=document.createElement('button');update.textContent='Update status';update.className='admin-btn';update.onclick=async()=>{update.disabled=true;try{await adminJSON('/api/support/admin/tickets/'+ticket._id,'PATCH',{status:select.value});await loadAdminSupportTickets(page);}catch(error){feedback.textContent=error.message;update.disabled=false;}};card.append(update,feedback);section.append(card);
+    }
+    for(const [label,target] of [['Previous',page-1],['Next',page+1]]){if(target<1 || target>data.pagination.pages)continue;const button=document.createElement('button');button.className='admin-btn';button.textContent=label;button.onclick=()=>loadAdminSupportTickets(target);section.append(button);}
+  } catch(error){section.textContent=error.message;const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>loadAdminSupportTickets(page);section.append(retry);}
+}
+window.loadAdminSupportTickets=loadAdminSupportTickets;
