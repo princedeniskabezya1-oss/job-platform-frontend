@@ -299,14 +299,18 @@ function messageContentHtml(message){
 }
 function meetingInviteHtml(message){const i=message.meetingInvite||{};return `<div class="meeting-invite-card"><div class="meeting-invite-header"><img src="${esc(i.logoUrl||'images/aift-logo.png')}" class="meeting-invite-logo" alt=""><div><strong>${esc(i.title||"AIFT Meeting")}</strong><div class="meeting-invite-host">Hosted by ${esc(i.hostName||"AIFT")}</div></div></div><div class="meeting-code-box">Meeting Code: <strong>${esc(i.meetingCode||"")}</strong></div><button class="meeting-join-btn" onclick="event.stopPropagation();showMeetingComingSoon()">Join Meeting</button></div>`;}
 function joinMeetingInvite(){showMeetingComingSoon();}function showMeetingComingSoon(){document.getElementById("meetingComingSoonModal")?.classList.remove("hidden");}function closeMeetingComingSoon(){document.getElementById("meetingComingSoonModal")?.classList.add("hidden");}function showMeetingComingSoonModal(){showMeetingComingSoon();}
-function getPrimaryAttachment(message){if(Array.isArray(message.attachments)&&message.attachments.length)return message.attachments[0];if(message.fileUrl||message.mediaUrl)return{url:message.fileUrl||message.mediaUrl,secureUrl:message.fileUrl||message.mediaUrl,type:normalizeAttachmentType(message.fileType||message.mediaType||""),mimeType:message.fileType||message.mediaType||"",originalName:message.fileName||"Attachment",size:message.fileSize||0};return null;}
-function normalizeAttachmentType(type=""){const t=String(type).toLowerCase();if(t.includes("image"))return"image";if(t.includes("video"))return"video";if(t.includes("audio"))return"audio";if(t.includes("pdf")||t.includes("document"))return"document";return t||"file";}
-function attachmentHtml(a,message){const url=a.secureUrl||a.url||"";if(!url)return"";const type=normalizeAttachmentType(a.type||a.mimeType||message.fileType||""),name=a.originalName||message.fileName||"Attachment";
+function getPrimaryAttachment(message){if(Array.isArray(message.attachments)&&message.attachments.length)return message.attachments[0];if(message.fileUrl||message.mediaUrl){const url=message.fileUrl||message.mediaUrl;return{url,secureUrl:url,type:normalizeAttachmentType([message.fileType,message.mediaType,message.fileName,url].join(" ")),mimeType:message.fileType||message.mediaType||"",originalName:message.fileName||"Attachment",size:message.fileSize||0};}return null;}
+function normalizeAttachmentType(type=""){const t=String(type).toLowerCase();if(t.includes("image")||/\.(jpe?g|png|webp|gif|heic|heif|bmp|avif)(?:$|[?#\s])/.test(t))return"image";if(t.includes("video")||/\.(mp4|webm|mov|m4v|avi|mkv|3gp|mpeg|mpg)(?:$|[?#\s])/.test(t))return"video";if(t.includes("audio")||/\.(mp3|m4a|aac|wav|ogg|flac|opus)(?:$|[?#\s])/.test(t))return"audio";if(t.includes("pdf")||t.includes("document"))return"document";return t||"file";}
+function attachmentHtml(a,message){const url=a.secureUrl||a.url||"";if(!url)return"";const name=a.originalName||message.fileName||"Attachment",type=normalizeAttachmentType([a.type,a.mimeType,message.fileType,name,url].join(" "));
   if(type==="image")return `<div style="position:relative"><img class="message-file-image" src="${esc(url)}" alt="${esc(name)}" loading="lazy" onclick="event.stopPropagation();openMediaViewer('${esc(url)}','image')">${!isMyMessage(message)?`<button class="asset-save-btn" onclick="event.stopPropagation();saveReceivedAssetById('${esc(messageId(message))}')">+</button>`:""}</div>`;
-  if(type==="video")return `<video class="message-file-video" src="${esc(url)}" controls playsinline preload="metadata" onclick="event.stopPropagation()"></video>`;
-  if(type==="audio")return `<audio class="message-file-audio" src="${esc(url)}" controls></audio>`;
+  if(type==="video")return `<div class="message-video-card" onclick="event.stopPropagation()"><video class="message-file-video" src="${esc(url)}" ${a.thumbnailUrl?`poster="${esc(a.thumbnailUrl)}"`:""} controls playsinline preload="metadata" onplay="pauseOtherChatMedia(this)"></video><button class="message-video-options" type="button" aria-label="Video options" onclick="openVideoMessageOptions('${esc(messageId(message))}',event)">⋮</button></div>`;
+  if(type==="audio")return `<audio class="message-file-audio" src="${esc(url)}" controls onplay="pauseOtherChatMedia(this)"></audio>`;
   return `<a class="file-card" href="${esc(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><div><strong>${esc(name)}</strong><span>${esc(fileSize(a.size||message.fileSize||0))}</span></div></a>`;
 }
+function pauseOtherChatMedia(activeMedia){document.querySelectorAll("#messagesBox video, #messagesBox audio").forEach(media=>{if(media!==activeMedia)try{media.pause();}catch{}});}
+function openVideoMessageOptions(id,event){event?.stopPropagation();const message=state.messages.find(item=>String(messageId(item))===String(id)),bubble=document.querySelector(`.message-bubble[data-message-id="${CSS.escape(String(id))}"]`);if(message&&bubble)beginMessageSelection(message,bubble);}
+function repairRecordedVideoDuration(video,expectedSeconds){const expected=Number(expectedSeconds||0);if(!video||!expected)return;const duration=Number(video.duration||0);if(Number.isFinite(duration)&&duration>=expected*.9)return;const restore=()=>{video.removeEventListener("timeupdate",restore);video.currentTime=0;};video.addEventListener("timeupdate",restore,{once:true});try{video.currentTime=1e10;}catch{}}
+
 function messageMetaHtml(message,mine){
   const edited=message.isEdited||message.editedAt;let status="";if(mine){if(message.status==="failed")status='<button class="status-failed" type="button" onclick="event.stopPropagation();retryFailedMessage(this.closest(\'.message-bubble\')?.dataset.messageId)">Failed · Retry</button>';else if(message.seen||message.status==="seen")status='<span class="status-read">Read</span>';else if(message.status==="delivered"||message.deliveredAt||(Array.isArray(message.deliveredTo)&&message.deliveredTo.length))status='<span>Delivered</span>';else if(message.status==="sending")status='<span>Sending…</span>';else status='<span>Sent</span>';}
   return `<div class="message-meta">${edited?'<span>Edited</span>':''}<span>${esc(formatMessageTime(message.createdAt))}</span>${status}</div>`;
@@ -540,7 +544,7 @@ function renderMediaReview(){
   if(!active||!url)return;
 
   main.innerHTML=active.type.startsWith("video/")
-    ?`<video src="${esc(url)}" controls playsinline preload="metadata"></video>`
+    ?`<video src="${esc(url)}" controls playsinline preload="metadata" data-recorded-duration="${Number(active.aiftDurationSeconds||0)}" onloadedmetadata="repairRecordedVideoDuration(this,this.dataset.recordedDuration)" onplay="pauseOtherChatMedia(this)"></video>`
     :`<img src="${esc(url)}" alt="${esc(active.name)}">`;
 
   thumbs.innerHTML=state.attachments.map((file,index)=>{
@@ -875,10 +879,11 @@ function captureCameraPhoto(){
 
 function cameraRecordingMimeType(){
   return [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4",
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
-    "video/webm",
-    "video/mp4"
+    "video/webm"
   ].find(type=>window.MediaRecorder?.isTypeSupported?.(type))||"";
 }
 
@@ -892,6 +897,7 @@ function updateCameraRecordingProgress(){
 
 function finishCameraRecording(blob,mimeType){
   const shouldDiscard=cameraCapture.discard||!blob?.size;
+  const recordedDurationSeconds=Math.max(.1,(Date.now()-cameraCapture.startedAt)/1000);
   releaseCameraStream();
   resetCameraCaptureUi();
   document.getElementById("cameraModal")?.classList.add("hidden");
@@ -900,6 +906,7 @@ function finishCameraRecording(blob,mimeType){
   if(shouldDiscard)return;
   const extension=mimeType.includes("mp4")?"mp4":"webm";
   const file=new File([blob],"aift-video-"+Date.now()+"."+extension,{type:mimeType||"video/webm"});
+  file.aiftDurationSeconds=recordedDurationSeconds;
   state.attachments=[];state.attachment=null;state.attachmentKind="video";
   addMediaReviewFiles([file]);
   openMediaReview();
