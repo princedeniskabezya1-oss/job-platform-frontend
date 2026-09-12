@@ -153,14 +153,54 @@ function openedConversationStorageKey(){return "aiftOpenedConversations:"+(state
 function loadOpenedConversations(){try{const stored=JSON.parse(localStorage.getItem(openedConversationStorageKey())||"{}");state.conversationOpenedAt=new Map(Object.entries(stored).map(([id,time])=>[id,Number(time)||0]).filter(([,time])=>time>0));}catch{state.conversationOpenedAt=new Map();}}
 function rememberConversationOpened(id){if(!id)return;state.conversationOpenedAt.set(String(id),Date.now());try{localStorage.setItem(openedConversationStorageKey(),JSON.stringify(Object.fromEntries(state.conversationOpenedAt)));}catch(error){console.warn("Unable to save conversation order:",error);}}
 
-let currentMediaUrl="", currentMediaType="image";
-function openMediaViewer(url,type="image"){
+let currentMediaUrl="",currentMediaType="image",currentMediaMessageId="",mediaViewerControlsTimer=null,mediaViewerPressTimer=null,mediaViewerPress=null,mediaViewerLongPressed=false;
+function formatVideoTime(seconds){const total=Math.max(0,Math.floor(Number(seconds)||0));return Math.floor(total/60)+":"+String(total%60).padStart(2,"0");}
+function updateChatVideoDuration(video){const label=video?.closest(".message-video-card")?.querySelector(".message-video-duration");if(!label)return;const supplied=Number(label.dataset.duration||0),actual=Number(video.duration||0),duration=Number.isFinite(actual)&&actual>0?actual:supplied;label.textContent=formatVideoTime(duration);}
+function openMessageVideoViewer(messageIdValue,url){const message=state.messages.find(item=>String(messageId(item))===String(messageIdValue));openMediaViewer(url,"video",message);}
+function openMediaViewer(url,type="image",message=null){
   stopChatMediaPlayback();
-  currentMediaUrl=url;currentMediaType=type;const modal=document.getElementById("mediaViewer"),image=document.getElementById("mediaViewerImage"),video=document.getElementById("mediaViewerVideo");
-  image?.classList.add("hidden");video?.classList.add("hidden"); if(type==="video"){video.src=url;video.classList.remove("hidden");}else{image.src=url;image.classList.remove("hidden");}modal?.classList.remove("hidden");
+  currentMediaUrl=url;currentMediaType=type;currentMediaMessageId=message?String(messageId(message)):"";
+  const modal=document.getElementById("mediaViewer"),image=document.getElementById("mediaViewerImage"),video=document.getElementById("mediaViewerVideo"),play=document.getElementById("mediaViewerPlay"),controls=document.getElementById("mediaViewerControls"),sender=document.getElementById("mediaViewerSender"),date=document.getElementById("mediaViewerDate");
+  image?.classList.add("hidden");video?.classList.add("hidden");play?.classList.add("hidden");controls?.classList.add("hidden");
+  document.getElementById("mediaViewerReactions")?.classList.add("hidden");
+  modal?.classList.remove("controls-visible","reactions-open");
+  if(sender)sender.textContent=message?(isMyMessage(message)?"You":conversationTitle(state.activeConversation)):(type==="video"?"Video":"Media");
+  if(date)date.textContent=message?formatMessageTime(message.createdAt):"";
+  if(type==="video"&&video){
+    video.src=url;video.classList.remove("hidden");play?.classList.remove("hidden");controls?.classList.remove("hidden");syncMediaViewerProgress();syncMediaViewerPlayState();video.play().catch(()=>showMediaViewerControls(true));
+  }else if(image){image.src=url;image.classList.remove("hidden");showMediaViewerControls(true);}
+  modal?.classList.remove("hidden");
 }
-function closeMediaViewer(){ document.getElementById("mediaViewer")?.classList.add("hidden"); const video=document.getElementById("mediaViewerVideo"); if(video){video.pause();video.src="";} }
-async function downloadCurrentMedia(){ if(!currentMediaUrl)return toast("No media selected"); try{const r=await fetch(currentMediaUrl);if(!r.ok)throw new Error();const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="aift-media-"+Date.now();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}catch{window.open(currentMediaUrl,"_blank");} }
+function closeMediaViewer(){
+  clearTimeout(mediaViewerControlsTimer);clearTimeout(mediaViewerPressTimer);
+  const modal=document.getElementById("mediaViewer"),video=document.getElementById("mediaViewerVideo");
+  modal?.classList.add("hidden");modal?.classList.remove("controls-visible","reactions-open");
+  document.getElementById("mediaViewerReactions")?.classList.add("hidden");
+  if(video){video.pause();video.removeAttribute("src");video.load?.();}
+  currentMediaMessageId="";mediaViewerPress=null;mediaViewerLongPressed=false;
+}
+function showMediaViewerControls(autoHide=true){
+  const modal=document.getElementById("mediaViewer");if(!modal||modal.classList.contains("hidden"))return;
+  modal.classList.add("controls-visible");clearTimeout(mediaViewerControlsTimer);
+  if(autoHide&&!modal.classList.contains("reactions-open"))mediaViewerControlsTimer=setTimeout(()=>modal.classList.remove("controls-visible"),2500);
+}
+function toggleMediaViewerControls(){const modal=document.getElementById("mediaViewer");if(!modal)return;if(modal.classList.contains("controls-visible")){clearTimeout(mediaViewerControlsTimer);modal.classList.remove("controls-visible");}else showMediaViewerControls(true);}
+function toggleMediaViewerPlayback(){const video=document.getElementById("mediaViewerVideo");if(!video)return;if(video.paused)video.play().catch(()=>{});else video.pause();showMediaViewerControls(true);}
+function syncMediaViewerPlayState(){const video=document.getElementById("mediaViewerVideo"),play=document.getElementById("mediaViewerPlay");play?.classList.toggle("is-playing",!!video&&!video.paused&&!video.ended);}
+function syncMediaViewerProgress(){const video=document.getElementById("mediaViewerVideo"),range=document.getElementById("mediaViewerProgress");if(!video)return;const duration=Number(video.duration||0),current=Number(video.currentTime||0);if(range)range.value=duration>0?String(Math.min(1000,current/duration*1000)):"0";const currentEl=document.getElementById("mediaViewerCurrent"),durationEl=document.getElementById("mediaViewerDuration");if(currentEl)currentEl.textContent=formatVideoTime(current);if(durationEl)durationEl.textContent=formatVideoTime(duration);}
+function seekMediaViewer(value){const video=document.getElementById("mediaViewerVideo"),duration=Number(video?.duration||0);if(video&&duration>0)video.currentTime=duration*(Number(value)||0)/1000;showMediaViewerControls(true);}
+function mediaViewerPointerDown(event){if(event.target.closest("button,input,.media-viewer-reactions"))return;mediaViewerLongPressed=false;mediaViewerPress={id:event.pointerId,x:event.clientX,y:event.clientY};clearTimeout(mediaViewerPressTimer);mediaViewerPressTimer=setTimeout(()=>{if(!mediaViewerPress)return;mediaViewerLongPressed=true;openMediaViewerReactions();},520);}
+function mediaViewerPointerMove(event){if(!mediaViewerPress||event.pointerId!==mediaViewerPress.id)return;if(Math.hypot(event.clientX-mediaViewerPress.x,event.clientY-mediaViewerPress.y)>12)mediaViewerPointerCancel();}
+function mediaViewerPointerUp(event){if(!mediaViewerPress||event.pointerId!==mediaViewerPress.id)return;clearTimeout(mediaViewerPressTimer);mediaViewerPress=null;if(mediaViewerLongPressed){mediaViewerLongPressed=false;return;}toggleMediaViewerControls();}
+function mediaViewerPointerCancel(){clearTimeout(mediaViewerPressTimer);mediaViewerPressTimer=null;mediaViewerPress=null;}
+function openMediaViewerReactions(){if(!currentMediaMessageId)return;document.getElementById("mediaViewerVideo")?.pause();document.getElementById("mediaViewer")?.classList.add("controls-visible","reactions-open");document.getElementById("mediaViewerReactions")?.classList.remove("hidden");clearTimeout(mediaViewerControlsTimer);if(navigator.vibrate)navigator.vibrate(24);}
+function viewerMessage(){return state.messages.find(item=>String(messageId(item))===String(currentMediaMessageId));}
+async function reactFromMediaViewer(emoji){const id=currentMediaMessageId;if(!id)return;await reactToMessageById(id,emoji);document.getElementById("mediaViewerReactions")?.classList.add("hidden");document.getElementById("mediaViewer")?.classList.remove("reactions-open");showMediaViewerControls(true);}
+function selectViewerMessage(){const message=viewerMessage();if(!message)return false;state.selectedMessages.clear();state.selectedMessages.set(String(messageId(message)),{id:String(messageId(message)),text:message.text||"",mine:isMyMessage(message),message});state.selectedMessage=message;state.selectionMode=true;return true;}
+function replyFromMediaViewer(){if(!selectViewerMessage())return;closeMediaViewer();replyToSelectedMessage();}
+function openViewerReactionPicker(){if(!selectViewerMessage())return;state.reactionTargetId=currentMediaMessageId;closeMediaViewer();openReactionEmojiPicker();}
+function openViewerMessageOptions(){const message=viewerMessage();if(!message)return;const id=String(messageId(message));closeMediaViewer();requestAnimationFrame(()=>{const bubble=document.querySelector(`.message-bubble[data-message-id="${CSS.escape(id)}"]`);if(bubble)beginMessageSelection(message,bubble);});}
+async function downloadCurrentMedia(){if(!currentMediaUrl)return toast("No media selected");try{const r=await fetch(currentMediaUrl);if(!r.ok)throw new Error();const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="aift-media-"+Date.now();document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}catch{window.open(currentMediaUrl,"_blank");}}
 
 function conversationId(c){return getId(c);} function getOtherParticipant(c){const p=(c?.participants||[]).find(item=>String(getId(item.user||item))!==String(state.myId));return p?.user||p||c?.user||null;}
 function conversationTitle(c){if(!c)return"Conversation";if(c.displayName)return c.displayName;if(c.type!=="direct"&&c.title)return c.title;return userDisplayName(c.user||getOtherParticipant(c)||{});}
@@ -303,7 +343,7 @@ function getPrimaryAttachment(message){if(Array.isArray(message.attachments)&&me
 function normalizeAttachmentType(type=""){const t=String(type).toLowerCase();if(t.includes("image")||/\.(jpe?g|png|webp|gif|heic|heif|bmp|avif)(?:$|[?#\s])/.test(t))return"image";if(t.includes("video")||/\.(mp4|webm|mov|m4v|avi|mkv|3gp|mpeg|mpg)(?:$|[?#\s])/.test(t))return"video";if(t.includes("audio")||/\.(mp3|m4a|aac|wav|ogg|flac|opus)(?:$|[?#\s])/.test(t))return"audio";if(t.includes("pdf")||t.includes("document"))return"document";return t||"file";}
 function attachmentHtml(a,message){const url=a.secureUrl||a.url||"";if(!url)return"";const name=a.originalName||message.fileName||"Attachment",type=normalizeAttachmentType([a.type,a.mimeType,message.fileType,name,url].join(" "));
   if(type==="image")return `<div style="position:relative"><img class="message-file-image" src="${esc(url)}" alt="${esc(name)}" loading="lazy" onclick="event.stopPropagation();openMediaViewer('${esc(url)}','image')">${!isMyMessage(message)?`<button class="asset-save-btn" onclick="event.stopPropagation();saveReceivedAssetById('${esc(messageId(message))}')">+</button>`:""}</div>`;
-  if(type==="video")return `<div class="message-video-card" onclick="event.stopPropagation()"><video class="message-file-video" src="${esc(url)}" ${a.thumbnailUrl?`poster="${esc(a.thumbnailUrl)}"`:""} controls playsinline preload="metadata" onplay="pauseOtherChatMedia(this)"></video><button class="message-video-options" type="button" aria-label="Video options" onclick="openVideoMessageOptions('${esc(messageId(message))}',event)">⋮</button></div>`;
+  if(type==="video")return `<div class="message-video-card" role="button" tabindex="0" aria-label="Open video" onclick="event.stopPropagation();openMessageVideoViewer('${esc(messageId(message))}','${esc(url)}')" onkeydown="if(event.key==='Enter'){event.preventDefault();openMessageVideoViewer('${esc(messageId(message))}','${esc(url)}')}"><video class="message-file-video" src="${esc(url)}" ${a.thumbnailUrl?`poster="${esc(a.thumbnailUrl)}"`:""} muted playsinline preload="metadata" onloadedmetadata="updateChatVideoDuration(this)"></video><span class="message-video-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></span><span class="message-video-duration" data-duration="${Number(a.duration||0)}">${formatVideoTime(a.duration||0)}</span></div>`;
   if(type==="audio")return `<audio class="message-file-audio" src="${esc(url)}" controls onplay="pauseOtherChatMedia(this)"></audio>`;
   return `<a class="file-card" href="${esc(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><div><strong>${esc(name)}</strong><span>${esc(fileSize(a.size||message.fileSize||0))}</span></div></a>`;
 }
