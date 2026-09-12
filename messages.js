@@ -163,7 +163,10 @@ function openMediaViewer(url,type="image",message=null){
   const modal=document.getElementById("mediaViewer"),image=document.getElementById("mediaViewerImage"),video=document.getElementById("mediaViewerVideo"),play=document.getElementById("mediaViewerPlay"),controls=document.getElementById("mediaViewerControls"),sender=document.getElementById("mediaViewerSender"),date=document.getElementById("mediaViewerDate");
   image?.classList.add("hidden");video?.classList.add("hidden");play?.classList.add("hidden");controls?.classList.add("hidden");
   document.getElementById("mediaViewerReactions")?.classList.add("hidden");
-  modal?.classList.remove("controls-visible","reactions-open");
+  modal?.classList.remove("controls-visible","reactions-open","recorded-fullscreen");
+  const attachment=message?getPrimaryAttachment(message):null;
+  const sourceName=String(attachment?.originalName||message?.fileName||"");
+  modal?.classList.toggle("recorded-fullscreen",type==="video"&&/^aift-video-\d+\.(?:mp4|webm)$/i.test(sourceName));
   if(sender)sender.textContent=message?(isMyMessage(message)?"You":conversationTitle(state.activeConversation)):(type==="video"?"Video":"Media");
   if(date)date.textContent=message?formatMessageTime(message.createdAt):"";
   if(type==="video"&&video){
@@ -174,7 +177,7 @@ function openMediaViewer(url,type="image",message=null){
 function closeMediaViewer(){
   clearTimeout(mediaViewerControlsTimer);clearTimeout(mediaViewerPressTimer);
   const modal=document.getElementById("mediaViewer"),video=document.getElementById("mediaViewerVideo");
-  modal?.classList.add("hidden");modal?.classList.remove("controls-visible","reactions-open");
+  modal?.classList.add("hidden");modal?.classList.remove("controls-visible","reactions-open","recorded-fullscreen");
   document.getElementById("mediaViewerReactions")?.classList.add("hidden");
   if(video){video.pause();video.removeAttribute("src");video.load?.();}
   currentMediaMessageId="";mediaViewerPress=null;mediaViewerLongPressed=false;
