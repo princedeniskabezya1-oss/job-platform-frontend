@@ -358,7 +358,7 @@
           </div>
 
           <div class="helper-row">
-            <div class="helper-text">Use the same email you registered with.</div>
+            <a class="helper-link" href="account-access.html?mode=forgot">Forgot password?</a>
             <a class="helper-link" href="register.html">Create account</a>
           </div>
 
@@ -566,6 +566,11 @@ window.addEventListener("pageshow", () => {
         }
 
         if(!res.ok){
+          if(data.code === "EMAIL_NOT_VERIFIED"){
+            sessionStorage.setItem("aiftPendingVerificationEmail", data.email || email);
+            window.location.href = "account-access.html?mode=resend";
+            return;
+          }
           throw new Error(data.message || "Invalid credentials.");
         }
 

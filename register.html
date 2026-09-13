@@ -479,7 +479,7 @@
           <div class="field-group">
             <label class="field-label" for="password">Password</label>
             <div class="password-wrap">
-              <input class="input" type="password" id="password" placeholder="Create a password" autocomplete="new-password" minlength="6" maxlength="100">
+              <input class="input" type="password" id="password" placeholder="Create a password" autocomplete="new-password" minlength="8" maxlength="100">
               <button class="toggle-password" type="button" id="togglePassword" aria-label="Show password">
                 <svg viewBox="0 0 24 24">
                   <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
@@ -607,8 +607,8 @@ function getRedirectPageByRole(role){
         return;
       }
 
-      if(password.length < 6){
-        setMessage("error", "Your password must be at least 6 characters long.");
+      if(password.length < 8){
+        setMessage("error", "Your password must be at least 8 characters long.");
         passwordInput.focus();
         return;
       }
@@ -634,13 +634,18 @@ function getRedirectPageByRole(role){
         const data = await res.json().catch(() => ({}));
 
         if(res.ok){
-          setMessage("success", "Account created successfully. Redirecting to login...");
-          form.reset();
-          updateRoleHint();
-
-          setTimeout(() => {
-            window.location.href = getRedirectPageByRole(role);
-          }, 1400);
+          if(data.verificationRequired){
+            sessionStorage.setItem("aiftPendingVerificationEmail", data.email || email);
+            setMessage("success", "Account created. Check your email to verify your account.");
+            setTimeout(() => {
+              window.location.href = "account-access.html?mode=resend";
+            }, 1200);
+          }else{
+            setMessage("success", "Account created successfully. Redirecting to login...");
+            setTimeout(() => {
+              window.location.href = "login.html";
+            }, 1200);
+          }
           return;
         }
 
