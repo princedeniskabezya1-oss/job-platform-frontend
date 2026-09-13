@@ -310,7 +310,7 @@
       box-shadow:none;
     }
 
-    .message{
+    .register-divider{display:flex;align-items:center;gap:12px;margin:17px 0;color:#94a3b8;font-size:11px;font-weight:700}.register-divider::before,.register-divider::after{content:"";height:1px;background:#dbe3ee;flex:1}.google-register{min-height:44px;display:flex;justify-content:center}.google-register iframe{max-width:100%}\n\n    .message{
       margin-top:14px;
       padding:12px 14px;
       border-radius:14px;
@@ -503,6 +503,8 @@
           </div>
 
           <button type="submit" class="submit-btn" id="submitBtn">Create Account</button>
+          <div class="register-divider"><span>or sign up with</span></div>
+          <div id="googleRegister" class="google-register" aria-label="Sign up with Google"></div>
         </form>
 
         <div class="message" id="message"></div>
@@ -565,6 +567,33 @@ function getRedirectPageByRole(role){
     roleInput.addEventListener("change", updateRoleHint);
     updateRoleHint();
 
+    const GOOGLE_CLIENT_ID="137825461456-ihqf0q7c8fien1vf66iueiidcgdd0k2f.apps.googleusercontent.com";
+    function storeGoogleAuth(data){
+      const user=data.user||{},role=user.role||"talent";
+      ["token","employerToken","talentToken","adminToken","agentToken","schoolToken","studentToken","teacherToken"].forEach(key=>localStorage.removeItem(key));
+      localStorage.setItem("token",data.token);localStorage.setItem("userId",user.id||"");localStorage.setItem("role",role);
+      localStorage.setItem(role+"Token",data.token);
+      if(user.name)localStorage.setItem("profileName",user.name);
+      if(user.profileImage)localStorage.setItem("profileImage",user.profileImage);
+    }
+    async function handleGoogleRegistration(response){
+      if(!response?.credential)return setMessage("error","Google sign-up was cancelled or unavailable.");
+      setMessage("info","Verifying your Google email...");
+      try{
+        const res=await fetch(API+"/api/auth/google-register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:response.credential,role:roleInput.value})});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok)throw new Error(data.message||"Google sign-up failed.");
+        storeGoogleAuth(data);setMessage("success","Google email verified. Your AIFT account is ready.");
+        setTimeout(()=>window.location.replace("home.html"),600);
+      }catch(error){setMessage("error",error.message||"Google sign-up is temporarily unavailable.");}
+    }
+    function initializeGoogleRegistration(){
+      if(!window.google?.accounts?.id)return;
+      google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleRegistration});
+      google.accounts.id.renderButton(document.getElementById("googleRegister"),{type:"standard",theme:"outline",size:"large",text:"signup_with",shape:"rectangular",width:360});
+    }
+    const googleScript=document.createElement("script");googleScript.src="https://accounts.google.com/gsi/client";googleScript.async=true;googleScript.defer=true;googleScript.onload=initializeGoogleRegistration;document.head.appendChild(googleScript);
+
     togglePasswordBtn.addEventListener("click", () => {
       const isPassword = passwordInput.type === "password";
       passwordInput.type = isPassword ? "text" : "password";
@@ -596,7 +625,7 @@ function getRedirectPageByRole(role){
       }
 
       if(!validateEmail(email)){
-        setMessage("error", "Please enter a valid email address.");
+        setMessage("error", "Please enter a valid email address, such as name@gmail.com.");
         emailInput.focus();
         return;
       }
@@ -636,7 +665,7 @@ function getRedirectPageByRole(role){
         if(res.ok){
           if(data.verificationRequired){
             sessionStorage.setItem("aiftPendingVerificationEmail", data.email || email);
-            setMessage("success", "Account created. Check your email to verify your account.");
+            setMessage("success", data.message || "Verification email sent. Confirm the link to activate your account.");
             setTimeout(() => {
               window.location.href = "account-access.html?mode=resend";
             }, 1200);
