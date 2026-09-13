@@ -34,9 +34,8 @@
 
     .page{
       width:100%;
-      max-width:1120px;
-      display:grid;
-      grid-template-columns:1.02fr .98fr;
+      max-width:480px;
+      display:block;
       background:rgba(255,255,255,.86);
       border:1px solid rgba(219,227,238,.9);
       border-radius:32px;
@@ -45,6 +44,7 @@
     }
 
     .left-panel{
+      display:none;
       position:relative;
       padding:48px 42px;
       background:linear-gradient(160deg, rgba(10,102,194,.96), rgba(0,65,130,.98));
@@ -94,13 +94,13 @@
 
     .right-panel{
       background:linear-gradient(180deg,#ffffff,#fbfdff);
-      padding:42px 38px;
+      padding:38px 34px;
       display:flex;
       align-items:center;
       justify-content:center;
     }
 
-    .form-shell{width:100%;max-width:420px}
+    .form-shell{width:100%;max-width:400px}
     .eyebrow{
       display:inline-flex;
       align-items:center;
@@ -170,7 +170,7 @@
 
     .helper-row{
       display:flex;
-      justify-content:space-between;
+      justify-content:flex-end;
       align-items:center;
       gap:12px;
       margin:4px 0 18px;
@@ -200,23 +200,6 @@
     .submit-btn:disabled{opacity:.72;cursor:not-allowed;transform:none;box-shadow:none}
 
     .login-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:#94a3b8;font-size:11px;font-weight:700}.login-divider::before,.login-divider::after{content:"";height:1px;background:#dbe3ee;flex:1}.google-login{min-height:44px;display:flex;justify-content:center}.google-login iframe{max-width:100%}
-
-    .preview-btn{
-  width:100%;
-  height:48px;
-  border:1px solid var(--primary);
-  border-radius:14px;
-  background:#fff;
-  color:var(--primary);
-  font-size:14px;
-  font-weight:800;
-  cursor:pointer;
-  margin-top:10px;
-}
-
-.preview-btn:hover{
-  background:#eff6ff;
-}
 
     .message{
       margin-top:14px;
@@ -258,41 +241,7 @@
       .form-shell h2{font-size:28px}
       .hero h1{font-size:26px}
     }
-  
-    /* Landing-flow refinement: compact sign-in without changing authentication */
-    .landing-back{
-      position:fixed;top:max(18px,env(safe-area-inset-top));left:22px;z-index:5;
-      display:inline-flex;align-items:center;gap:8px;color:#17416f;text-decoration:none;
-      font-size:13px;font-weight:800
-    }
-    .landing-back span{font-size:19px;line-height:1}
-    .page{max-width:880px;grid-template-columns:.78fr 1.22fr}
-    .left-panel{padding:42px 32px;display:flex;flex-direction:column;justify-content:center}
-    .left-panel .brand{position:absolute;top:34px;left:32px}
-    .hero{margin-top:0}
-    .hero h1{font-size:33px}
-    .hero p{margin-bottom:0}
-    .feature-list{display:none}
-    .right-panel{padding:38px 42px}
-    .mini-note{display:none}
-    @media(max-width:960px){
-      body{padding-top:70px}
-      .landing-back{top:max(15px,env(safe-area-inset-top));left:17px}
-      .page{grid-template-columns:1fr;max-width:500px}
-      .left-panel{padding:28px 24px 25px;display:block}
-      .left-panel .brand{position:static}
-      .hero{margin-top:18px}
-      .hero h1{font-size:25px;margin-bottom:9px}
-      .hero p{font-size:13px;line-height:1.55}
-      .right-panel{padding:27px 24px 31px}
-    }
-    @media(max-width:560px){
-      body{padding:64px 12px 12px}
-      .left-panel{padding:23px 20px}
-      .hero h1{font-size:22px}
-      .hero p{display:none}
-      .right-panel{padding:24px 18px 26px}
-    }
+
 
   </style>
 </head>
@@ -367,16 +316,12 @@
 
           <div class="helper-row">
             <a class="helper-link" href="account-access.html?mode=forgot">Forgot password?</a>
-            <a class="helper-link" href="register.html">Create account</a>
           </div>
 
           <button type="submit" class="submit-btn" id="submitBtn">Sign In</button>
           <div class="login-divider"><span>or</span></div>
           <div id="googleLogin" class="google-login" aria-label="Sign in with Google"></div>
 
-<button type="button" class="preview-btn" onclick="previewAIFT()">
-  Preview AIFT first
-</button>
         </form>
 
         <div class="message" id="message"></div>
@@ -521,11 +466,6 @@ window.addEventListener("pageshow", () => {
   }
 });
 
-    function previewAIFT(){
-  sessionStorage.setItem("aiftGuestPreview", "true");
-  sessionStorage.setItem("aiftGuestStartedAt", String(Date.now()));
-  window.location.href = "home.html?preview=1";
-}
 
     const GOOGLE_CLIENT_ID = "137825461456-ihqf0q7c8fien1vf66iueiidcgdd0k2f.apps.googleusercontent.com";
 
@@ -564,7 +504,7 @@ window.addEventListener("pageshow", () => {
       if(!window.google?.accounts?.id) return;
       google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
       google.accounts.id.renderButton(document.getElementById("googleLogin"),{
-        type:"standard",theme:"outline",size:"large",text:"continue_with",shape:"rectangular",width:320
+        type:"standard",theme:"outline",size:"large",text:"continue_with",shape:"rectangular",width:Math.min(400,document.getElementById("googleLogin").clientWidth)
       });
     }
 
