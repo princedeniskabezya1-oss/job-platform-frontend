@@ -104,7 +104,7 @@
       const row=document.createElement("div");
       row.className="aift-password-recovery-link";
       row.style.cssText="padding:0 24px 14px;text-align:center;font:700 13px/1.4 Inter,Arial,sans-serif";
-      row.innerHTML='<a href="account-access.html?mode=forgot" style="color:#0a66c2;text-decoration:none">Forgot password?</a>';
+      row.innerHTML='<a href="account-access.html?mode=forgot&account=current" style="color:#0a66c2;text-decoration:none">Forgot password?</a>';
       actions.parentNode.insertBefore(row,actions);
     });
   }
