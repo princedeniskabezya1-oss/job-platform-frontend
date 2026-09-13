@@ -91,7 +91,24 @@
     script.addEventListener("load",loadEmployerCareerHubSmart,{once:true});
     document.head.appendChild(script);
   }
-  function init(){loadCareerHubCreation();if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
+  function installPasswordRecoveryLinks(){
+    const targets=[
+      ["changePasswordModal",".modal-actions"],
+      ["studentChangePasswordModal",".modal-actions"],
+      ["employerPasswordModal",".employer-security-modal-actions"]
+    ];
+    targets.forEach(([modalId,actionsSelector])=>{
+      const modal=document.getElementById(modalId);
+      const actions=modal?.querySelector(actionsSelector);
+      if(!modal||!actions||modal.querySelector(".aift-password-recovery-link"))return;
+      const row=document.createElement("div");
+      row.className="aift-password-recovery-link";
+      row.style.cssText="padding:0 24px 14px;text-align:center;font:700 13px/1.4 Inter,Arial,sans-serif";
+      row.innerHTML='<a href="account-access.html?mode=forgot" style="color:#0a66c2;text-decoration:none">Forgot password?</a>';
+      actions.parentNode.insertBefore(row,actions);
+    });
+  }
+  function init(){loadCareerHubCreation();installPasswordRecoveryLinks();if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
 
