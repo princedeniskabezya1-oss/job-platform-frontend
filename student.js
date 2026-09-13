@@ -25698,6 +25698,12 @@ function setStudentPasswordMessage(
 
 function openStudentChangePasswordModal(){
 
+  window.location.href =
+    "account-access.html?mode=change";
+
+  return;
+
+
   const form =
     $(
       "studentChangePasswordForm"
