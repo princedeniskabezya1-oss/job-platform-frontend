@@ -380,7 +380,6 @@
         </form>
 
         <div class="message" id="message"></div>
-        <div class="google-signup-offer" id="googleSignupOffer"><p>This Google email does not have an AIFT account yet.</p><a href="register.html?google=1">Create account with Google</a></div>
 
         <div class="footer">
           Don’t have an account? <a href="register.html">Create one</a>
@@ -402,11 +401,9 @@
     const submitBtn = document.getElementById("submitBtn");
     const messageBox = document.getElementById("message");
     const togglePasswordBtn = document.getElementByIdId?.("togglePassword") || document.getElementById("togglePassword");
-    const googleSignupOffer = document.getElementById("googleSignupOffer");
 
     function setMessage(type, text){
       messageBox.className = "message";
-      if(googleSignupOffer) googleSignupOffer.classList.remove("show");
       if(!text){
         messageBox.style.display = "none";
         messageBox.textContent = "";
@@ -546,7 +543,11 @@ window.addEventListener("pageshow", () => {
         });
         const data = await res.json().catch(() => ({}));
         if(!res.ok){
-          if(data.code === "EMAIL_NOT_REGISTERED" && googleSignupOffer) googleSignupOffer.classList.add("show");
+          if(data.code === "EMAIL_NOT_REGISTERED"){
+            sessionStorage.setItem("aiftPendingGoogleCredential", response.credential);
+            window.location.replace("register.html?google=1");
+            return;
+          }
           throw new Error(data.message || "Google sign-in failed.");
         }
         if(!data.token || !data.user) throw new Error("Google login response is incomplete.");
