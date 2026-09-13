@@ -420,6 +420,7 @@
         font-size:26px;
       }
     }
+    .google-role-modal{position:fixed;inset:0;z-index:1000;background:rgba(7,28,70,.58);display:none;align-items:center;justify-content:center;padding:18px}.google-role-modal.show{display:flex}.google-role-card{width:min(430px,100%);max-height:calc(100vh - 36px);overflow:auto;background:#fff;border:1px solid #dbe3ee;border-radius:22px;padding:24px;box-shadow:0 24px 70px rgba(15,23,42,.3)}.google-role-card h3{font-size:22px;line-height:1.2;margin:0 0 7px;color:#111827}.google-role-card p{font-size:12px;color:#64748b;line-height:1.55;margin:0 0 17px}.google-role-actions{display:grid;grid-template-columns:110px 1fr;gap:9px;margin-top:16px}.google-role-actions button{height:46px;border-radius:12px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.google-role-cancel{border:1px solid #dbe3ee;background:#fff;color:#334155}.google-role-continue{border:0;background:#0a66c2;color:#fff}.google-role-continue:disabled{opacity:.6}.google-register{width:100%;overflow:hidden}.google-register>div,.google-register iframe{max-width:100%!important}@media(max-width:560px){.google-role-modal{align-items:flex-end;padding:10px}.google-role-card{border-radius:20px 20px 14px 14px;padding:22px 18px}.google-role-actions{grid-template-columns:92px 1fr}}
   </style>
 </head>
 <body>
@@ -542,7 +543,7 @@
     const googleRoleInput=document.getElementById("googleRole");
     const continueGoogleRole=document.getElementById("continueGoogleRole");
     const cancelGoogleRole=document.getElementById("cancelGoogleRole");
-    let verifiedGoogleCredential="";
+    let verifiedGoogleCredential=sessionStorage.getItem("aiftPendingGoogleCredential")||"";
 
 const roleMessages = {
   talent: "Create a job seeker profile, showcase your skills, and connect with real opportunities.",
@@ -601,13 +602,14 @@ function getRedirectPageByRole(role){
         const res=await fetch(API+"/api/auth/google-register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:verifiedGoogleCredential,role:googleRoleInput.value})});
         const data=await res.json().catch(()=>({}));
         if(!res.ok)throw new Error(data.message||"Google sign-up failed.");
-        storeGoogleAuth(data);setMessage("success","Your verified AIFT account is ready.");
+        sessionStorage.removeItem("aiftPendingGoogleCredential");storeGoogleAuth(data);setMessage("success","Your verified AIFT account is ready.");
         googleRoleModal.classList.remove("show");setTimeout(()=>window.location.replace("home.html"),600);
       }catch(error){googleRoleModal.classList.remove("show");setMessage("error",error.message||"Google sign-up is temporarily unavailable.");}
       finally{continueGoogleRole.disabled=false;continueGoogleRole.textContent="Create AIFT account";}
     }
     continueGoogleRole.addEventListener("click",finishGoogleRegistration);
-    cancelGoogleRole.addEventListener("click",()=>{verifiedGoogleCredential="";googleRoleModal.classList.remove("show");});
+    cancelGoogleRole.addEventListener("click",()=>{verifiedGoogleCredential="";sessionStorage.removeItem("aiftPendingGoogleCredential");googleRoleModal.classList.remove("show");});
+    if(verifiedGoogleCredential){googleRoleModal.classList.add("show");}
         function initializeGoogleRegistration(){
       if(!window.google?.accounts?.id)return;
       google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleRegistration});
