@@ -392,6 +392,10 @@
     }
 
     @media (max-width: 560px){
+      html,body{max-width:100%;overflow-x:hidden}
+      .page,.right-panel,.form-shell,form,.field-group{width:100%;max-width:100%;min-width:0}
+      .input,.select{min-width:0}
+      .google-register{width:100%}
       body{
         padding:12px;
       }
@@ -534,6 +538,11 @@
     const messageBox = document.getElementById("message");
     const submitBtn = document.getElementById("submitBtn");
     const togglePasswordBtn = document.getElementById("togglePassword");
+    const googleRoleModal=document.getElementById("googleRoleModal");
+    const googleRoleInput=document.getElementById("googleRole");
+    const continueGoogleRole=document.getElementById("continueGoogleRole");
+    const cancelGoogleRole=document.getElementById("cancelGoogleRole");
+    let verifiedGoogleCredential="";
 
 const roleMessages = {
   talent: "Create a job seeker profile, showcase your skills, and connect with real opportunities.",
@@ -580,19 +589,29 @@ function getRedirectPageByRole(role){
     }
     async function handleGoogleRegistration(response){
       if(!response?.credential)return setMessage("error","Google sign-up was cancelled or unavailable.");
-      setMessage("info","Verifying your Google email...");
+      verifiedGoogleCredential=response.credential;
+      googleRoleInput.value=roleInput.value;
+      setMessage("success","Google email verified. Choose your account type to continue.");
+      googleRoleModal.classList.add("show");
+    }
+    async function finishGoogleRegistration(){
+      if(!verifiedGoogleCredential)return;
+      continueGoogleRole.disabled=true;continueGoogleRole.textContent="Creating...";
       try{
-        const res=await fetch(API+"/api/auth/google-register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:response.credential,role:roleInput.value})});
+        const res=await fetch(API+"/api/auth/google-register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({credential:verifiedGoogleCredential,role:googleRoleInput.value})});
         const data=await res.json().catch(()=>({}));
         if(!res.ok)throw new Error(data.message||"Google sign-up failed.");
-        storeGoogleAuth(data);setMessage("success","Google email verified. Your AIFT account is ready.");
-        setTimeout(()=>window.location.replace("home.html"),600);
-      }catch(error){setMessage("error",error.message||"Google sign-up is temporarily unavailable.");}
+        storeGoogleAuth(data);setMessage("success","Your verified AIFT account is ready.");
+        googleRoleModal.classList.remove("show");setTimeout(()=>window.location.replace("home.html"),600);
+      }catch(error){googleRoleModal.classList.remove("show");setMessage("error",error.message||"Google sign-up is temporarily unavailable.");}
+      finally{continueGoogleRole.disabled=false;continueGoogleRole.textContent="Create AIFT account";}
     }
-    function initializeGoogleRegistration(){
+    continueGoogleRole.addEventListener("click",finishGoogleRegistration);
+    cancelGoogleRole.addEventListener("click",()=>{verifiedGoogleCredential="";googleRoleModal.classList.remove("show");});
+        function initializeGoogleRegistration(){
       if(!window.google?.accounts?.id)return;
       google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleRegistration});
-      google.accounts.id.renderButton(document.getElementById("googleRegister"),{type:"standard",theme:"outline",size:"large",text:"signup_with",shape:"rectangular",width:360});
+      google.accounts.id.renderButton(document.getElementById("googleRegister"),{type:"standard",theme:"outline",size:"large",text:"signup_with",shape:"rectangular",width:320});
     }
     const googleScript=document.createElement("script");googleScript.src="https://accounts.google.com/gsi/client";googleScript.async=true;googleScript.defer=true;googleScript.onload=initializeGoogleRegistration;document.head.appendChild(googleScript);
 
@@ -694,5 +713,6 @@ function getRedirectPageByRole(role){
       register();
     });
   </script>
+  <div class="google-role-modal" id="googleRoleModal" role="dialog" aria-modal="true" aria-labelledby="googleRoleTitle"><div class="google-role-card"><h3 id="googleRoleTitle">Choose your AIFT account</h3><p>Your Google email has been verified. Select how you want to use AIFT before creating the account.</p><label class="field-label" for="googleRole">Account type</label><select class="select" id="googleRole"><option value="talent">Job Seeker</option><option value="student">Student</option><option value="employer">Employer</option><option value="school">School</option></select><div class="google-role-actions"><button class="google-role-cancel" type="button" id="cancelGoogleRole">Cancel</button><button class="google-role-continue" type="button" id="continueGoogleRole">Create AIFT account</button></div></div></div>
 </body>
 </html>
