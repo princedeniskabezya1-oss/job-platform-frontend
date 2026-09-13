@@ -245,6 +245,12 @@
     }
 
     @media(max-width:560px){
+      html,body{max-width:100%;overflow-x:hidden}
+      body{padding:64px 10px 12px}
+      .page,.right-panel,.form-shell,form,.field-group{width:100%;max-width:100%;min-width:0}
+      .helper-row{flex-wrap:nowrap}.helper-link{font-size:11px;white-space:nowrap}
+      .input{min-width:0}
+      .google-login{width:100%}
       body{padding:12px}
       .page{border-radius:24px}
       .left-panel{padding:28px 20px 24px}
@@ -374,6 +380,7 @@
         </form>
 
         <div class="message" id="message"></div>
+        <div class="google-signup-offer" id="googleSignupOffer"><p>This Google email does not have an AIFT account yet.</p><a href="register.html?google=1">Create account with Google</a></div>
 
         <div class="footer">
           Don’t have an account? <a href="register.html">Create one</a>
@@ -394,10 +401,12 @@
     const passwordInput = document.getElementById("password");
     const submitBtn = document.getElementById("submitBtn");
     const messageBox = document.getElementById("message");
-    const togglePasswordBtn = document.getElementById("togglePassword");
+    const togglePasswordBtn = document.getElementByIdId?.("togglePassword") || document.getElementById("togglePassword");
+    const googleSignupOffer = document.getElementById("googleSignupOffer");
 
     function setMessage(type, text){
       messageBox.className = "message";
+      if(googleSignupOffer) googleSignupOffer.classList.remove("show");
       if(!text){
         messageBox.style.display = "none";
         messageBox.textContent = "";
@@ -536,7 +545,10 @@ window.addEventListener("pageshow", () => {
           body:JSON.stringify({credential:response.credential})
         });
         const data = await res.json().catch(() => ({}));
-        if(!res.ok) throw new Error(data.message || "Google sign-in failed.");
+        if(!res.ok){
+          if(data.code === "EMAIL_NOT_REGISTERED" && googleSignupOffer) googleSignupOffer.classList.add("show");
+          throw new Error(data.message || "Google sign-in failed.");
+        }
         if(!data.token || !data.user) throw new Error("Google login response is incomplete.");
         clearStoredAuth();
         storeAuth(data);
@@ -551,7 +563,7 @@ window.addEventListener("pageshow", () => {
       if(!window.google?.accounts?.id) return;
       google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential});
       google.accounts.id.renderButton(document.getElementById("googleLogin"),{
-        type:"standard",theme:"outline",size:"large",text:"signin_with",shape:"rectangular",width:360
+        type:"standard",theme:"outline",size:"large",text:"signin_with",shape:"rectangular",width:320
       });
     }
 
