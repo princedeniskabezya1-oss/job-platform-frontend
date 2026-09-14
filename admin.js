@@ -189,14 +189,25 @@ function readableRole(role){
   const map = {
     admin: "Admin",
     employer: "Employer",
-    agent: "Recruiter",
+    agent: "Recruitment Partner",
     talent: "Job Seeker",
     school: "School",
-    teacher: "Teacher",
+    teacher: "Educator",
     student: "Student"
   };
 
   return map[normalize(role)] || "Member";
+}
+
+function readableAccountType(user){
+  return readableRole(user?.role);
+}
+
+function readableAccountSource(user){
+  if(user?.accountOrigin === "school_managed" || user?.createdBySchool) return "School-created";
+  if(user?.accountOrigin === "self_registered") return "Self-created";
+  if(user?.accountOrigin === "admin_provisioned") return "Admin-created";
+  return "Existing account";
 }
 
 function isVerified(item){
@@ -981,6 +992,7 @@ function openAdminQuickCreate(){
     "Choose what you want to create or manage.",
     `
       <div class="admin-quick-grid two">
+        <button type="button" onclick="openManagedAccountCreate();">Create Managed Account</button>
         <button type="button" onclick="switchAdminSection('users');closeAdminFormModal();">Manage Users</button>
         <button type="button" onclick="switchAdminSection('jobs');closeAdminFormModal();">Manage Jobs</button>
         <button type="button" onclick="switchAdminSection('schools');closeAdminFormModal();">Manage Schools</button>
@@ -989,11 +1001,69 @@ function openAdminQuickCreate(){
       </div>
 
       <div class="admin-empty" style="margin-top:14px;">
-        <strong>Admin-created records need backend routes.</strong>
-        <span>For safe production control, create records from their official dashboard unless an admin creation route is added.</span>
+        <strong>Organization accounts are Admin-managed.</strong>
+        <span>Employers, Schools, and Recruitment Partners cannot register through the public signup page.</span>
       </div>
     `
   );
+}
+
+function openManagedAccountCreate(){
+  openAdminFormModal(
+    "Create managed account",
+    "Provision an Employer, School, or Recruitment Partner account.",
+    `
+      <form id="managedAccountForm">
+        <div class="admin-form-grid">
+          <label><span>Account type</span><select id="managedAccountRole" required><option value="employer">Employer</option><option value="school">School</option><option value="agent">Recruitment Partner</option></select></label>
+          <label><span>Organization or account name</span><input id="managedAccountName" type="text" maxlength="100" required></label>
+          <label><span>Owner email address</span><input id="managedAccountEmail" type="email" maxlength="150" autocomplete="off" required></label>
+          <label><span>Temporary password</span><input id="managedAccountPassword" type="password" minlength="8" maxlength="100" autocomplete="new-password" required></label>
+        </div>
+        <div class="admin-empty" style="margin-top:14px;">
+          <strong>Email ownership is still required.</strong>
+          <span>The owner must verify this email before signing in. Send the temporary password through a secure channel and ask them to change it immediately.</span>
+        </div>
+        <div id="managedAccountMessage" class="admin-empty hidden" style="margin-top:14px;"></div>
+        <div class="admin-modal-actions">
+          <button type="button" class="admin-btn ghost" onclick="closeAdminFormModal()">Cancel</button>
+          <button type="submit" class="admin-btn" id="managedAccountSubmit">Create account</button>
+        </div>
+      </form>
+    `
+  );
+
+  document.getElementById("managedAccountForm")?.addEventListener("submit", submitManagedAccount);
+}
+
+async function submitManagedAccount(event){
+  event.preventDefault();
+  const submit = document.getElementById("managedAccountSubmit");
+  const message = document.getElementById("managedAccountMessage");
+  const payload = {
+    role: document.getElementById("managedAccountRole")?.value,
+    name: document.getElementById("managedAccountName")?.value.trim(),
+    email: document.getElementById("managedAccountEmail")?.value.trim(),
+    password: document.getElementById("managedAccountPassword")?.value || ""
+  };
+
+  if(submit){ submit.disabled = true; submit.textContent = "Creating..."; }
+  message?.classList.add("hidden");
+
+  try{
+    const data = await adminJSON("/api/users", "POST", payload);
+    addAuditLog("Created managed account", data?.user?.id || payload.email, { role: payload.role });
+    adminToast("Managed account created.");
+    await refreshAdminUsers();
+    closeAdminFormModal();
+  }catch(error){
+    if(message){
+      message.innerHTML = `<strong>Account not created</strong><span>${esc(error.message || "Please try again.")}</span>`;
+      message.classList.remove("hidden");
+    }
+  }finally{
+    if(submit){ submit.disabled = false; submit.textContent = "Create account"; }
+  }
 }
 /* =====================================================
    PART 3 / 20 — OVERVIEW DASHBOARD
@@ -1460,11 +1530,11 @@ async function loadAdminUsers(){
         <option value="all">All Roles</option>
         <option value="admin">Admin</option>
         <option value="employer">Employer</option>
-        <option value="agent">Recruiter</option>
+        <option value="agent">Recruitment Partner</option>
         <option value="talent">Job Seeker</option>
         <option value="school">School</option>
-        <option value="teacher">Teacher</option>
-        <option value="student">Student</option>
+        <option value="teacher">Educator</option>
+        <option value="student">Learner</option>
       </select>
 
       <select onchange="adminState.filters.users.status=this.value;renderAdminUsers()">
@@ -1486,7 +1556,7 @@ async function loadAdminUsers(){
           <h2>Platform Users</h2>
           <p>Manage all users across AIFT.</p>
         </div>
-        <button type="button" onclick="openAdminQuickCreate()">Create</button>
+        <button type="button" onclick="openManagedAccountCreate()">Create managed account</button>
       </div>
 
       <div id="adminUsersTable">
@@ -1621,8 +1691,9 @@ function adminUserRow(user){
 
       <td>
         <span class="admin-badge role-${esc(role)}">
-          ${esc(readableRole(role))}
+          ${esc(readableAccountType(user))}
         </span>
+        <span class="admin-badge blue">${esc(readableAccountSource(user))}</span>
       </td>
 
       <td>
@@ -1668,7 +1739,7 @@ function openAdminUserDrawer(userId){
 
   openAdminDrawer(
     getDisplayName(user),
-    `${readableRole(user.role)} • ${user.email || "No email"}`,
+    `${readableAccountType(user)} • ${user.email || "No email"}`,
     `
       <div class="admin-entity-header">
         <img src="${esc(getAvatar(user))}" alt="">
@@ -1676,7 +1747,7 @@ function openAdminUserDrawer(userId){
           <h3>${esc(getDisplayName(user))}</h3>
           <p>${esc(user.email || "")}</p>
           <div class="admin-actions">
-            <span class="admin-badge role-${esc(normalize(user.role))}">${esc(readableRole(user.role))}</span>
+            <span class="admin-badge role-${esc(normalize(user.role))}">${esc(readableAccountType(user))}</span>
             <span class="admin-badge ${verified ? "green" : "orange"}">${verified ? "Verified" : "Unverified"}</span>
             <span class="admin-badge status-${esc(status)}">${esc(status)}</span>
           </div>
@@ -1686,7 +1757,12 @@ function openAdminUserDrawer(userId){
       <div class="admin-detail-grid">
         <div class="admin-detail-card">
           <span>Role</span>
-          <strong>${esc(readableRole(user.role))}</strong>
+          <strong>${esc(readableAccountType(user))}</strong>
+        </div>
+
+        <div class="admin-detail-card">
+          <span>Account source</span>
+          <strong>${esc(readableAccountSource(user))}</strong>
         </div>
 
         <div class="admin-detail-card">
@@ -7687,6 +7763,7 @@ window.loadAuditLogs = loadAuditLogs;
 
 window.handleAdminGlobalSearch = handleAdminGlobalSearch;
 window.openAdminQuickCreate = openAdminQuickCreate;
+window.openManagedAccountCreate = openManagedAccountCreate;
 window.runHealthCheck = runHealthCheck;
 window.exportAdminReport = exportAdminReport;
 
