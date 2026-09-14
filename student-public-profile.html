@@ -1959,22 +1959,24 @@ function protectStudentProfile(){
 
   if(role && role !== "student"){
     if(role === "employer"){
-      location.href = `employer-public-profile.html?id=${state.profile._id}`;
-      return;
+      location.replace(`employer-public-profile.html?id=${state.profile._id}`);
+      return false;
     }
 
     if(role === "school"){
-      location.href = `school-public-profile.html?id=${state.profile._id}`;
-      return;
+      location.replace(`school-public-profile.html?id=${state.profile._id}`);
+      return false;
     }
 
     if(role === "agent" || role === "talent"){
-      location.href = `agent-public-profile.html?id=${state.profile._id}`;
-      return;
+      location.replace(`agent-public-profile.html?id=${state.profile._id}`);
+      return false;
     }
 
     showState("This is not a student profile", "The profile you opened does not belong to a student.");
+    return false;
   }
+  return true;
 }
 
 function renderProfile(){
@@ -3472,15 +3474,17 @@ async function init(){
       throw new Error("Missing student profile id.");
     }
 
-    await fetchViewer();
-    await loadViewerFamilyStatus();
-    await fetchProfile();
+    await Promise.all([
+      fetchViewer(),
+      loadViewerFamilyStatus(),
+      fetchProfile()
+    ]);
 
-    protectStudentProfile();
+    if(!protectStudentProfile()) return;
 renderProfile();
 setupStudentProfileActions();
 
-await loadPerformance();
+    loadPerformance().catch(err=>console.warn("Student performance unavailable:",err.message));
     mountStudentFeed();
 
     document.body.classList.add("loaded");
