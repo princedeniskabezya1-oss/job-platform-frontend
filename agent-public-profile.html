@@ -1767,13 +1767,6 @@ body.cv-viewer-open{
   </div>
 </main>
 
-<div class="mobile-bottom">
-  <button onclick="goHome()">Home</button>
-  <button onclick="activateTab('overview')">About</button>
-  <button onclick="activateTab('feed')">Posts</button>
-  <button onclick="goMessages()">Chat</button>
-  <button onclick="openMyProfile()">Me</button>
-</div>
 <script>
 const API = "https://backend-1-9b6f.onrender.com";
 const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -3109,6 +3102,8 @@ init();
     document.body?.classList.add("aift-public-profile-clean");
     if(document.body) document.body.style.setProperty("padding-bottom","0","important");
     if(window.parent !== window){
+      window.parent.document?.body?.classList.add("aift-employer-dashboard-active");
+      window.parent.document?.querySelector(".aift-mobile-nav")?.classList.add("aift-mobile-nav--dashboard-hidden");
       window.parent.postMessage({type:"aift:dashboard-chrome",hidden:true},location.origin);
     }
   }
@@ -3116,6 +3111,9 @@ init();
   document.addEventListener("DOMContentLoaded",hidePublicProfileNavigation,{once:true});
   window.addEventListener("pageshow",hidePublicProfileNavigation);
   setTimeout(hidePublicProfileNavigation,300);
+  const observer=new MutationObserver(hidePublicProfileNavigation);
+  observer.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
 </body>
