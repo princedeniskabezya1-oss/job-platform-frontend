@@ -125,7 +125,13 @@
     try{
       const file=frame.contentWindow.location.pathname.split("/").pop()||"";
       const chromeFreePages=new Set([
+        "index.html",
+        "login.html",
+        "register.html",
         "account-access.html",
+        "privacy-policy.html",
+        "careers.html",
+        "contact.html",
         "public-profile.html",
         "agent-public-profile.html",
         "student-public-profile.html",
@@ -302,6 +308,10 @@
       if(event.data?.type==="aift:section-scroll"){
         const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current")).find(item=>item.contentWindow===event.source);
         if(!frame)return;
+        if(frameNeedsCleanChrome(frame)){
+          setDashboardNavigationHidden(true);
+          return;
+        }
         const nav=document.querySelector(".aift-mobile-nav");
         nav?.classList.toggle("aift-mobile-nav--hidden",Boolean(event.data.hidden));
         const bounds=sectionBounds();
