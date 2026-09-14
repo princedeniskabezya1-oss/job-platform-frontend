@@ -3270,45 +3270,6 @@ init();
 
 </script>
 
-<nav class="mobile-public-bottom">
-
-  <button
-    class="active"
-    data-mobile="about"
-    onclick="openTab('about')"
-  >
-    Home
-  </button>
-
-  <button
-    data-mobile="posts"
-    onclick="openTab('posts')"
-  >
-    Posts
-  </button>
-
-  <button
-    data-mobile="jobs"
-    onclick="openTab('jobs')"
-  >
-    Jobs
-  </button>
-
-  <button
-    data-mobile="people"
-    onclick="openTab('people')"
-  >
-    People
-  </button>
-
-  <button
-    data-mobile="details"
-    onclick="openTab('details')"
-  >
-    About
-  </button>
-
-</nav>
 <div id="companyShareOverlay" class="profile-share-overlay hidden">
   <div class="profile-share-panel">
     <div class="profile-share-head">
@@ -3347,6 +3308,8 @@ init();
     document.body?.classList.add("aift-public-profile-clean");
     if(document.body) document.body.style.setProperty("padding-bottom","0","important");
     if(window.parent !== window){
+      window.parent.document?.body?.classList.add("aift-employer-dashboard-active");
+      window.parent.document?.querySelector(".aift-mobile-nav")?.classList.add("aift-mobile-nav--dashboard-hidden");
       window.parent.postMessage({type:"aift:dashboard-chrome",hidden:true},location.origin);
     }
   }
@@ -3354,6 +3317,9 @@ init();
   document.addEventListener("DOMContentLoaded",hidePublicProfileNavigation,{once:true});
   window.addEventListener("pageshow",hidePublicProfileNavigation);
   setTimeout(hidePublicProfileNavigation,300);
+  const observer=new MutationObserver(hidePublicProfileNavigation);
+  observer.observe(document.body,{childList:true,subtree:true});
+  window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
 </body>
