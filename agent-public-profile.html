@@ -1991,17 +1991,19 @@ function protectAgentProfile(){
 
   if(role && role !== "agent" && role !== "talent"){
     if(role === "employer"){
-      location.href = `employer-public-profile.html?id=${state.profile._id}`;
-      return;
+      location.replace(`employer-public-profile.html?id=${state.profile._id}`);
+      return false;
     }
 
     if(role === "school"){
-      location.href = `school-public-profile.html?id=${state.profile._id}`;
-      return;
+      location.replace(`school-public-profile.html?id=${state.profile._id}`);
+      return false;
     }
 
-    location.href = `public-profile.html?id=${state.profile._id}`;
+    location.replace(`public-profile.html?id=${state.profile._id}`);
+    return false;
   }
+  return true;
 }
 
 function renderProfile(){
@@ -2895,14 +2897,16 @@ async function init(){
       throw new Error("Missing agent profile id.");
     }
 
-    await fetchViewer();
-    await loadViewerFamilyStatus();
-    await fetchProfile();
+    await Promise.all([
+      fetchViewer(),
+      loadViewerFamilyStatus(),
+      fetchProfile()
+    ]);
 
-    protectAgentProfile();
+    if(!protectAgentProfile()) return;
     renderProfile();
 
-    await loadPerformance();
+    loadPerformance().catch(err=>console.warn("Agent performance unavailable:",err.message));
     mountAgentFeed();
 
     document.body.classList.add("loaded");
