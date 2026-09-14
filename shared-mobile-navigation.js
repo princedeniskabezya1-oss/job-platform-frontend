@@ -124,7 +124,8 @@
   function frameNeedsCleanChrome(frame){
     try{
       const file=frame.contentWindow.location.pathname.split("/").pop()||"";
-      const publicProfiles=new Set([
+      const chromeFreePages=new Set([
+        "account-access.html",
         "public-profile.html",
         "agent-public-profile.html",
         "student-public-profile.html",
@@ -143,7 +144,7 @@
         "class-builder.html",
         "class-view.html"
       ]);
-      return publicProfiles.has(file)||dashboards.has(file);
+      return chromeFreePages.has(file)||dashboards.has(file);
     }catch(error){
       return false;
     }
