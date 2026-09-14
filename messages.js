@@ -44,7 +44,7 @@ function readableRole(role=""){
 function profileUrl(user={}){
   const id=getId(user), role=String(user.role||"").toLowerCase(); if(!id) return "home.html";
   if(role==="student") return `student-public-profile.html?id=${encodeURIComponent(id)}`;
-  if(role==="teacher") return `teacher-public-profile.html?id=${encodeURIComponent(id)}`;
+  if(role==="teacher") return `public-profile.html?id=${encodeURIComponent(id)}`;
   if(role==="school") return `school-public-profile.html?id=${encodeURIComponent(id)}`;
   if(role==="employer") return `employer-public-profile.html?id=${encodeURIComponent(id)}`;
   return `agent-public-profile.html?id=${encodeURIComponent(id)}`;
