@@ -7117,6 +7117,17 @@
           rgba(109,40,217,.15);
       }
 
+      .venture-support-footer > strong{display:block;margin-bottom:10px;font-size:12px;color:#21143d}
+      .venture-contribution-amounts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+      .venture-contribution-amounts button{min-height:38px!important;background:#f2edff!important;color:#6228ba!important;border:1px solid #d8c9f6!important;box-shadow:none!important}
+      .venture-custom-contribution{display:block;margin-bottom:10px;text-align:left}
+      .venture-custom-contribution span{display:block;margin-bottom:5px;color:#665b76;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+      .venture-custom-contribution input{width:100%;height:42px;border:1px solid #ded7e9;border-radius:10px;padding:0 12px;font:inherit}
+      .venture-support-footer > button{width:100%;background:linear-gradient(120deg,#6d28d9,#245de5);color:#fff;border:0}
+      .venture-support-footer p{margin:10px 0 0;color:#756b82;font-size:9px;line-height:1.5}
+      .venture-other-support{border-top:1px solid #ece8f4}
+      .venture-other-support summary{padding:13px 14px;cursor:pointer;color:#655574;font-size:10px;font-weight:800;text-align:center}
+
 
       /* ===================================================
          VERIFICATION / ACTIVITY SIDE CARDS
@@ -10265,13 +10276,6 @@ and
 
             </div>
 
-            <div class="venture-support-footer">
-              <button type="button" onclick="location.href='checkout.html?type=venture_contribution&id='+encodeURIComponent(new URLSearchParams(location.search).get('id')||'')">
-                Contribute securely
-              </button>
-              <p>Contributions support this venture and do not provide shares, ownership, profit, or guaranteed returns.</p>
-            </div>
-
           </section>
 
 
@@ -10724,13 +10728,27 @@ and
               </h3>
 
               <p>
-                Choose how you would like to support the
-                founder or team.
+                Make a secure contribution in a few simple steps.
               </p>
 
             </div>
 
 
+            <div class="venture-support-footer">
+              <strong>Choose an amount (<span id="ventureContributionCurrency">PHP</span>)</strong>
+              <div class="venture-contribution-amounts">
+                <button type="button" onclick="startVentureContribution(10)">10</button>
+                <button type="button" onclick="startVentureContribution(25)">25</button>
+                <button type="button" onclick="startVentureContribution(50)">50</button>
+                <button type="button" onclick="startVentureContribution(100)">100</button>
+              </div>
+              <label class="venture-custom-contribution"><span>Custom amount</span><input id="ventureContributionAmount" type="number" min="1" step="0.01" inputmode="decimal" placeholder="Enter amount"></label>
+              <button type="button" onclick="startVentureContribution()">Contribute securely</button>
+              <p>Like crowdfunding platforms, this is voluntary support. It does not provide shares, ownership, profit, or a guaranteed return.</p>
+            </div>
+
+            <details class="venture-other-support">
+              <summary>Other ways to help</summary>
             <div
               class="venture-support-options"
               id="ventureSupportOptions"
@@ -10934,6 +10952,7 @@ and
               </button>
 
             </div>
+            </details>
 
           </section>
 
@@ -13314,6 +13333,11 @@ and
       ventureSetText(
         "ventureFundingPercent",
         `${percentage}%`
+      );
+
+      ventureSetText(
+        "ventureContributionCurrency",
+        currency
       );
 
 
@@ -16688,6 +16712,14 @@ async function toggleVentureSaved(){
 
     renderVentureSavedState();
 
+
+    function startVentureContribution(presetAmount){
+      const input=document.getElementById("ventureContributionAmount");
+      const amount=Number(presetAmount || input?.value || 0);
+      if(!Number.isFinite(amount) || amount < 1){ input?.focus(); return; }
+      const ventureId=ventureState.ventureId || new URLSearchParams(location.search).get("id") || "";
+      location.href=`checkout.html?type=venture_contribution&id=${encodeURIComponent(ventureId)}&amount=${encodeURIComponent(amount.toFixed(2))}`;
+    }
 
     if(
       response?.savesCount !==
