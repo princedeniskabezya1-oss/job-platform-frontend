@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Recover AIFT Admin Access</title>
+  <style>
+    :root{color-scheme:light;--blue:#0876cf;--ink:#13213a;--muted:#65748a;--line:#dfe7ef;--soft:#f5f8fb}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--soft);font-family:Arial,Helvetica,sans-serif;color:var(--ink);display:grid;place-items:center;padding:20px}
+    main{width:min(100%,520px);background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 50px rgba(19,33,58,.10);overflow:hidden}
+    header{padding:26px 28px 20px;border-bottom:1px solid var(--line)}
+    header img{display:block;width:128px;height:auto}
+    section{padding:28px}
+    h1{margin:0 0 10px;font-size:28px;line-height:1.2}
+    .intro{margin:0 0 24px;color:var(--muted);font-size:15px;line-height:1.6}
+    label{display:block;margin:0 0 16px;font-size:13px;font-weight:700}
+    input{width:100%;margin-top:7px;border:1px solid #cbd7e3;border-radius:12px;padding:14px 15px;font:inherit;color:var(--ink);background:#fff;outline:none}
+    input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(8,118,207,.13)}
+    button{width:100%;border:0;border-radius:12px;padding:15px;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.65;cursor:wait}
+    #status{display:none;margin:18px 0 0;padding:13px 14px;border-radius:11px;font-size:14px;line-height:1.5}
+    #status.error{display:block;background:#fff0f0;color:#9d2525}
+    #status.success{display:block;background:#eaf8ef;color:#17643a}
+    .note{margin:20px 0 0;color:var(--muted);font-size:12px;line-height:1.55}
+    a{color:var(--blue)}
+    @media(max-width:520px){body{padding:0;background:#fff}main{min-height:100vh;border:0;border-radius:0;box-shadow:none}header,section{padding-left:22px;padding-right:22px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header><a href="https://aiftph.com"><img src="/images/aift-logo-header.png" alt="AIFT"></a></header>
+    <section>
+      <h1>Recover Admin access</h1>
+      <p class="intro">Use the private setup key stored in Render to move the existing Admin account to the official AIFT support address. Previous Admin sessions will be signed out.</p>
+      <form id="recoveryForm">
+        <label>Admin setup key
+          <input id="setupKey" type="password" autocomplete="off" required>
+        </label>
+        <label>New Admin email
+          <input id="newEmail" type="email" value="support@aiftph.com" autocomplete="email" required>
+        </label>
+        <label>New password
+          <input id="newPassword" type="password" minlength="12" autocomplete="new-password" required>
+        </label>
+        <label>Confirm new password
+          <input id="confirmPassword" type="password" minlength="12" autocomplete="new-password" required>
+        </label>
+        <button id="submitButton" type="submit">Recover Admin account</button>
+      </form>
+      <div id="status" role="status" aria-live="polite"></div>
+      <p class="note">Never send your setup key or password to anyone. AIFT Support will not ask you to disclose either value.</p>
+    </section>
+  </main>
+  <script>
+    const API="https://backend-1-9b6f.onrender.com/api/auth";
+    const form=document.getElementById("recoveryForm");
+    const statusBox=document.getElementById("status");
+    const button=document.getElementById("submitButton");
+
+    function showStatus(message,type){
+      statusBox.textContent=message;
+      statusBox.className=type;
+    }
+
+    form.addEventListener("submit",async(event)=>{
+      event.preventDefault();
+      const setupKey=document.getElementById("setupKey").value;
+      const newEmail=document.getElementById("newEmail").value.trim().toLowerCase();
+      const newPassword=document.getElementById("newPassword").value;
+      const confirmPassword=document.getElementById("confirmPassword").value;
+
+      if(newPassword.length<12) return showStatus("Use a password with at least 12 characters.","error");
+      if(newPassword!==confirmPassword) return showStatus("The passwords do not match.","error");
+
+      button.disabled=true;
+      button.textContent="Recovering account…";
+      showStatus("Securely updating the Admin account…","success");
+
+      try{
+        const response=await fetch(`${API}/reset-admin-password`,{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({setupKey,newEmail,newPassword})
+        });
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok) throw new Error(payload.message||"Admin recovery failed.");
+        form.reset();
+        showStatus("Admin access recovered. You can now sign in with support@aiftph.com and your new password.","success");
+        setTimeout(()=>{window.location.href="/login.html";},3500);
+      }catch(error){
+        showStatus(error.message||"Admin recovery failed.","error");
+      }finally{
+        button.disabled=false;
+        button.textContent="Recover Admin account";
+      }
+    });
+  </script>
+</body>
+</html>
