@@ -566,7 +566,8 @@ a{
 <section id="tab-about" class="tab-section active">
   <article class="content-card card">
     <h2>Overview</h2>
-    <p id="overviewText">Loading company overview...</p>
+    <p id="overviewText" class="company-about-copy is-collapsed">Loading company overview...</p>
+    <button type="button" id="overviewToggle" class="company-about-toggle" aria-controls="overviewText" aria-expanded="false" onclick="toggleCompanyAbout('overviewText','overviewToggle')">View more</button>
   </article>
 
   <article class="content-card card">
@@ -614,7 +615,8 @@ a{
 <section id="tab-details" class="tab-section">
   <article class="content-card card">
     <h2>About this company</h2>
-    <p id="aboutFullText">Loading...</p>
+    <p id="aboutFullText" class="company-about-copy is-collapsed">Loading...</p>
+    <button type="button" id="aboutFullToggle" class="company-about-toggle" aria-controls="aboutFullText" aria-expanded="false" onclick="toggleCompanyAbout('aboutFullText','aboutFullToggle')">View more</button>
   </article>
 </section>
 
@@ -1086,6 +1088,43 @@ body.loading-profile .page{
   line-height:1.65;
   color:#222;
 }
+
+.company-about-copy{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.7;
+}
+
+.company-about-copy.is-collapsed{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:4;
+  overflow:hidden;
+}
+
+.company-about-toggle{
+  display:none;
+  align-items:center;
+  margin-top:12px;
+  padding:8px 13px;
+  border:1px solid #d8e0e8;
+  border-radius:999px;
+  background:#fff;
+  color:#0a66c2;
+  font:700 13px/1 inherit;
+  cursor:pointer;
+  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+
+.company-about-toggle:hover,
+.company-about-toggle:focus-visible{
+  background:#f3f8fd;
+  border-color:#0a66c2;
+  box-shadow:0 0 0 3px rgba(10,102,194,.1);
+  outline:none;
+}
+
+.company-about-toggle.is-visible{display:inline-flex;}
 
 .info-row{
   display:grid;
@@ -2050,6 +2089,11 @@ document.getElementById("companyHeadline").textContent = "";
   document.getElementById("aboutFullText").textContent =
     company.bio || "No information available.";
 
+  requestAnimationFrame(()=>{
+    configureCompanyAbout("overviewText","overviewToggle");
+    configureCompanyAbout("aboutFullText","aboutFullToggle");
+  });
+
   document.getElementById("companyLogo").src =
     company.profileImage ||
     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -2074,6 +2118,28 @@ if(followBtn){
 }
 
   renderAssociatedPeople();
+}
+
+function configureCompanyAbout(textId,buttonId){
+  const text = document.getElementById(textId);
+  const button = document.getElementById(buttonId);
+  if(!text || !button) return;
+
+  text.classList.add("is-collapsed");
+  button.textContent = "View more";
+  button.setAttribute("aria-expanded","false");
+  button.classList.toggle("is-visible",text.scrollHeight > text.clientHeight + 2);
+}
+
+function toggleCompanyAbout(textId,buttonId){
+  const text = document.getElementById(textId);
+  const button = document.getElementById(buttonId);
+  if(!text || !button) return;
+
+  const expanding = text.classList.contains("is-collapsed");
+  text.classList.toggle("is-collapsed",!expanding);
+  button.textContent = expanding ? "View less" : "View more";
+  button.setAttribute("aria-expanded",String(expanding));
 }
 
 function renderAssociatedPeople(){

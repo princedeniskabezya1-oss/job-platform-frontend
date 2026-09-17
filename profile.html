@@ -1262,7 +1262,7 @@ z-index:5;
 
             </div>
 
-            <div class="form-grid">
+            <div class="form-grid" id="jobSeekerCareerFields">
 
               <div class="field">
                 <label>
@@ -1451,6 +1451,25 @@ z-index:5;
   >
 </div>
 
+            </div>
+
+            <div class="form-grid hidden" id="employerCompanyFields">
+              <div class="field">
+                <label>Industry</label>
+                <input type="text" id="companyIndustryInput" placeholder="Technology, Education, Hospitality...">
+              </div>
+              <div class="field">
+                <label>Website</label>
+                <input type="url" id="companyWebsiteInput" placeholder="https://company.com">
+              </div>
+              <div class="field">
+                <label>Contact Email</label>
+                <input type="email" id="companyContactEmailInput" placeholder="contact@company.com">
+              </div>
+              <div class="field">
+                <label>Contact Phone</label>
+                <input type="tel" id="companyContactPhoneInput" placeholder="+63 900 000 0000">
+              </div>
             </div>
 
           </article>
@@ -1868,7 +1887,7 @@ z-index:5;
 
   </div>
 
-  <div class="field full">
+  <div class="field full" id="resumeUploadField">
 
     <label>
       Resume / CV
@@ -2417,6 +2436,31 @@ function validateProfileBeforeSave(){
 
   const errors = [];
 
+  if(role() === "employer"){
+    const employerRequiredFields = [
+      {id:"nameInput",label:"Company Name",section:"basic"},
+      {id:"headlineInput",label:"Company Headline",section:"basic"},
+      {id:"locationInput",label:"Headquarters / Location",section:"basic"},
+      {id:"bioInput",label:"Company Overview",section:"basic"},
+      {id:"companyIndustryInput",label:"Industry",section:"career"}
+    ];
+
+    employerRequiredFields.forEach(field=>{
+      const value = document.getElementById(field.id)?.value.trim() || "";
+      if(!value){
+        errors.push(field);
+        markFieldError(field.id,`${field.label} is required.`);
+      }
+    });
+
+    if(!errors.length) return true;
+
+    showSection(errors[0].section);
+    toast("Company profile needs more information",`Please complete: ${errors.map(e=>e.label).join(", ")}.`,"error");
+    document.getElementById(errors[0].id)?.focus();
+    return false;
+  }
+
   const requiredFields = [
     {
       id:"nameInput",
@@ -2630,11 +2674,16 @@ state.industries = Array.isArray(state.me.industries) ? [...state.me.industries]
 function fillForm(){
   const me = state.me || {};
 
-  document.getElementById("nameInput").value = me.name || "";
+  document.getElementById("nameInput").value = role() === "employer" ? (me.companyName || me.name || "") : (me.name || "");
   document.getElementById("headlineInput").value = me.headline || "";
   document.getElementById("roleInput").value = me.role || "";
   document.getElementById("locationInput").value = me.location || me.address || "";
   document.getElementById("bioInput").value = me.bio || me.schoolDescription || "";
+
+  document.getElementById("companyIndustryInput").value = me.industry || "";
+  document.getElementById("companyWebsiteInput").value = me.website || "";
+  document.getElementById("companyContactEmailInput").value = me.contactEmail || "";
+  document.getElementById("companyContactPhoneInput").value = me.contactPhone || "";
 
 if(role() === "student"){
   document.getElementById("preferredRoleInput").value =
@@ -2704,8 +2753,6 @@ function normalizeAvailability(value){
 function applyRoleLabels(){
   const r = role();
 
-  if(r !== "student") return;
-
   const setText = (selector, text) => {
     const el = document.querySelector(selector);
     if(el) el.textContent = text;
@@ -2722,6 +2769,60 @@ function applyRoleLabels(){
     const input = document.getElementById(inputId);
     if(input) input.placeholder = text;
   };
+
+  if(r === "employer"){
+    document.getElementById("jobSeekerCareerFields")?.classList.add("hidden");
+    document.getElementById("employerCompanyFields")?.classList.remove("hidden");
+    document.getElementById("resumeUploadField")?.classList.add("hidden");
+
+    ["experience","education","portfolio"].forEach(section=>{
+      document.querySelector(`[data-section="${section}"]`)?.classList.add("hidden");
+      document.getElementById(`section-${section}`)?.classList.add("hidden");
+    });
+
+    setText(".top-title h1", "Edit Company Profile");
+    setText(".top-title p", "Manage your company identity, overview, capabilities, media, and visibility.");
+    setText('[data-section="basic"]', "Company Information");
+    setText('[data-section="basic"] span', "Name, headline & overview");
+    setText('[data-section="career"]', "Company Details");
+    setText('[data-section="career"] span', "Industry & contact information");
+    setText('[data-section="services"]', "Capabilities");
+    setText('[data-section="services"] span', "Services, markets & specialties");
+    setText('[data-section="media"]', "Brand Media");
+    setText('[data-section="media"] span', "Company logo & banner");
+    setText("#section-basic .section-head h2", "Company Information");
+    setText("#section-basic .section-head p", "This information presents your company across AIFT.");
+    setText("#section-career .section-head h2", "Company Details");
+    setText("#section-career .section-head p", "Add your industry, website, and official contact information.");
+    setText("#section-services .section-head h2", "Services & Capabilities");
+    setText("#section-services .section-head p", "Describe what your company offers and the markets or specialties it serves.");
+    setText("#section-media .section-head h2", "Company Logo & Banner");
+    setText("#section-media .section-head p", "Upload your company logo and a professional banner image.");
+    setLabelForInput("nameInput", "Company Name");
+    setLabelForInput("headlineInput", "Company Tagline / Headline");
+    setLabelForInput("locationInput", "Headquarters / Location");
+    setLabelForInput("bioInput", "Company Overview");
+    setPlaceholder("nameInput", "Your company name");
+    setPlaceholder("headlineInput", "A short statement about your company");
+    setPlaceholder("locationInput", "Makati City, Philippines");
+    setPlaceholder("bioInput", "Describe your company, mission, experience, and value to clients or candidates.");
+    setPlaceholder("serviceInput", "Recruitment, Training, Consulting...");
+    setPlaceholder("industryInput", "Philippines, Southeast Asia, BPO, Education...");
+
+    const capabilityLabels = document.querySelectorAll("#section-services label");
+    if(capabilityLabels[0]) capabilityLabels[0].textContent = "Services & Capabilities";
+    if(capabilityLabels[1]) capabilityLabels[1].textContent = "Tools & Platforms";
+    if(capabilityLabels[2]) capabilityLabels[2].textContent = "Markets & Specialties";
+    const capabilityHelp = document.querySelector("#section-services .help");
+    if(capabilityHelp) capabilityHelp.textContent = "These capabilities appear on your employer public profile.";
+
+    const mediaLabels = document.querySelectorAll("#section-media .field > label");
+    if(mediaLabels[0]) mediaLabels[0].textContent = "Company Logo";
+    if(mediaLabels[1]) mediaLabels[1].textContent = "Company Banner";
+    return;
+  }
+
+  if(r !== "student") return;
 
   setText(".top-title p", "Manage your student profile, academic information, CV, projects, and visibility.");
 
@@ -2806,6 +2907,27 @@ renderPills("industriesContainer",state.industries,"industries");
 }
 
 function renderCompletion(){
+
+  if(role() === "employer"){
+    const companyChecks = [
+      document.getElementById("nameInput").value.trim(),
+      document.getElementById("headlineInput").value.trim(),
+      document.getElementById("locationInput").value.trim(),
+      document.getElementById("bioInput").value.trim(),
+      document.getElementById("companyIndustryInput").value.trim(),
+      document.getElementById("companyWebsiteInput").value.trim(),
+      document.getElementById("companyContactEmailInput").value.trim(),
+      document.getElementById("companyContactPhoneInput").value.trim(),
+      state.services.length >= 1,
+      state.industries.length >= 1,
+      state.me?.profileImage || state.avatarFile,
+      state.me?.bannerImage || state.bannerFile
+    ];
+    const score = Math.round((companyChecks.filter(Boolean).length / companyChecks.length) * 100);
+    document.getElementById("completionText").textContent = `${score}%`;
+    document.getElementById("completionBar").style.width = `${score}%`;
+    return;
+  }
 
   const checks = [
 
@@ -3451,6 +3573,14 @@ try{
       "name",
       document.getElementById("nameInput").value.trim()
     );
+
+    if(role() === "employer"){
+      form.append("companyName",document.getElementById("nameInput").value.trim());
+      form.append("industry",document.getElementById("companyIndustryInput").value.trim());
+      form.append("website",document.getElementById("companyWebsiteInput").value.trim());
+      form.append("contactEmail",document.getElementById("companyContactEmailInput").value.trim());
+      form.append("contactPhone",document.getElementById("companyContactPhoneInput").value.trim());
+    }
 
     form.append(
       "headline",
