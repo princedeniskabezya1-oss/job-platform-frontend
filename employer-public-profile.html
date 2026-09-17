@@ -574,6 +574,13 @@ a{
     <h2>Company details</h2>
     <div id="companyDetails"></div>
   </article>
+
+  <article class="content-card card hidden" id="companyOfferPreviewCard">
+    <h2>What we offer</h2>
+    <p class="company-section-intro">A quick look at this company’s main services and specialties.</p>
+    <div class="company-pill-list" id="companyOfferPreview"></div>
+    <button type="button" class="company-details-link" onclick="openTab('details')">View all company information <span aria-hidden="true">→</span></button>
+  </article>
 </section>
 
 <section id="tab-posts" class="tab-section">
@@ -617,6 +624,24 @@ a{
     <h2>About this company</h2>
     <p id="aboutFullText" class="company-about-copy is-collapsed">Loading...</p>
     <button type="button" id="aboutFullToggle" class="company-about-toggle" aria-controls="aboutFullText" aria-expanded="false" onclick="toggleCompanyAbout('aboutFullText','aboutFullToggle')">View more</button>
+  </article>
+
+  <article class="content-card card hidden" id="companyCapabilitiesCard">
+    <h2>Services &amp; Capabilities</h2>
+    <p class="company-section-intro">Professional services and solutions offered by this company.</p>
+    <div class="company-pill-list" id="companyCapabilitiesList"></div>
+  </article>
+
+  <article class="content-card card hidden" id="companyToolsCard">
+    <h2>Tools &amp; Platforms</h2>
+    <p class="company-section-intro">Technology and platforms used to deliver its services.</p>
+    <div class="company-pill-list" id="companyToolsList"></div>
+  </article>
+
+  <article class="content-card card hidden" id="companyMarketsCard">
+    <h2>Markets &amp; Specialties</h2>
+    <p class="company-section-intro">Industries, regions, and areas of specialization.</p>
+    <div class="company-pill-list" id="companyMarketsList"></div>
   </article>
 </section>
 
@@ -1105,26 +1130,69 @@ body.loading-profile .page{
 .company-about-toggle{
   display:none;
   align-items:center;
-  margin-top:12px;
-  padding:8px 13px;
-  border:1px solid #d8e0e8;
-  border-radius:999px;
-  background:#fff;
+  gap:5px;
+  margin-top:8px;
+  padding:2px 0;
+  border:0;
+  border-radius:4px;
+  background:transparent;
   color:#0a66c2;
-  font:700 13px/1 inherit;
+  font-family:inherit;
+  font-size:13px;
+  line-height:1.4;
+  font-weight:750;
   cursor:pointer;
-  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease;
+  transition:color .18s ease;
 }
 
 .company-about-toggle:hover,
 .company-about-toggle:focus-visible{
-  background:#f3f8fd;
-  border-color:#0a66c2;
-  box-shadow:0 0 0 3px rgba(10,102,194,.1);
-  outline:none;
+  color:#064b91;
+  text-decoration:underline;
+  outline:2px solid rgba(10,102,194,.25);
+  outline-offset:3px;
 }
 
 .company-about-toggle.is-visible{display:inline-flex;}
+
+.company-section-intro{
+  margin:-4px 0 14px!important;
+  color:#667085!important;
+  font-size:13px;
+}
+
+.company-pill-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.company-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:6px 11px;
+  border:1px solid #d7e6f7;
+  border-radius:999px;
+  background:#f3f8fd;
+  color:#23415f;
+  font-size:13px;
+  line-height:1.25;
+  font-weight:700;
+}
+
+.company-details-link{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  margin-top:14px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#0a66c2;
+  font:750 13px/1.4 inherit;
+  cursor:pointer;
+}
 
 .info-row{
   display:grid;
@@ -2128,7 +2196,9 @@ function configureCompanyAbout(textId,buttonId){
   text.classList.add("is-collapsed");
   button.textContent = "View more";
   button.setAttribute("aria-expanded","false");
-  button.classList.toggle("is-visible",text.scrollHeight > text.clientHeight + 2);
+  const hasLongContent = text.textContent.trim().length > 220;
+  const isOverflowing = text.scrollHeight > text.clientHeight + 2;
+  button.classList.toggle("is-visible",hasLongContent || isOverflowing);
 }
 
 function toggleCompanyAbout(textId,buttonId){
@@ -2197,6 +2267,52 @@ function renderAbout(){
       <strong>${state.publicStats.teamMembers || 0} employees</strong>
     </div>
   `;
+
+  renderCompanyExpertise();
+}
+
+function normalizeCompanyList(value){
+  if(Array.isArray(value)){
+    return value.map(item=>String(item || "").trim()).filter(Boolean);
+  }
+
+  if(typeof value === "string"){
+    return value.split(",").map(item=>item.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function renderCompanyPills(containerId,items){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+
+  container.innerHTML = items
+    .map(item=>`<span class="company-pill">${escapeHtml(item)}</span>`)
+    .join("");
+}
+
+function renderCompanyExpertise(){
+  const company = state.company || {};
+  const services = normalizeCompanyList(company.services);
+  const tools = normalizeCompanyList(company.tools);
+  const markets = normalizeCompanyList(company.industries);
+  const preview = [...services,...markets].slice(0,8);
+
+  const sections = [
+    ["companyCapabilitiesCard","companyCapabilitiesList",services],
+    ["companyToolsCard","companyToolsList",tools],
+    ["companyMarketsCard","companyMarketsList",markets]
+  ];
+
+  sections.forEach(([cardId,listId,items])=>{
+    document.getElementById(cardId)?.classList.toggle("hidden",!items.length);
+    renderCompanyPills(listId,items);
+  });
+
+  document.getElementById("companyOfferPreviewCard")
+    ?.classList.toggle("hidden",!preview.length);
+  renderCompanyPills("companyOfferPreview",preview);
 }
 </script>
 <script>
@@ -2735,6 +2851,12 @@ function openTab(tab){
 
   document.querySelector(`.mobile-public-bottom [data-mobile="${tab}"]`)
     ?.classList.add("active");
+
+  if(tab === "details"){
+    requestAnimationFrame(()=>{
+      configureCompanyAbout("aboutFullText","aboutFullToggle");
+    });
+  }
 
   window.scrollTo({
     top:0,
