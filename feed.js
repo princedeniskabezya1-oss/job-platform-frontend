@@ -382,7 +382,7 @@ await loadFeed({ reset: true });
 
           <div class="aift-composer-actions">
             <label class="aift-upload-btn">
-              <input id="aiftPostMedia" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple onchange="AIFTFeed.previewComposerMedia()" />
+              <input id="aiftPostMedia" type="file" accept="image/*,video/*" multiple onchange="AIFTFeed.previewComposerMedia()" />
               Add media
             </label>
             <button class="aift-primary-btn" onclick="AIFTFeed.createPost()">Post</button>
@@ -954,12 +954,31 @@ requestAnimationFrame(() => {
 });
 }
 
+let reelUiTimer;
+function showReelUi(){
+  const viewer = document.getElementById("aiftReelViewer");
+  clearTimeout(reelUiTimer);
+  viewer?.classList.remove("aift-reel-ui-hidden");
+  viewer?.querySelectorAll(".aift-reel-sound-pop").forEach(control => control.classList.add("show"));
+  reelUiTimer = setTimeout(() => {
+    const video = viewer?.querySelector(`.aift-reel-slide[data-post-id="${CSS.escape(String(state.reelActivePostId))}"] video`);
+    if(video && !video.paused && !viewer.querySelector(".aift-reel-panel.show") && !viewer.contains(document.activeElement)){
+      viewer.classList.add("aift-reel-ui-hidden");
+    }
+  }, 2200);
+}
+
 function handleReelScreenTap(event, postId){
   const clickedAction = event.target.closest(
     ".aift-reel-actions, .aift-reel-close, .aift-reel-author, .aift-reel-more, .aift-reel-sound-pop, .aift-reel-panel, .aift-reel-caption"
   );
 
   if(clickedAction) return;
+
+  if(document.getElementById("aiftReelViewer")?.classList.contains("aift-reel-ui-hidden")){
+    showReelUi();
+    return;
+  }
 
   event.preventDefault();
   event.stopPropagation();
@@ -987,6 +1006,7 @@ handleReelLike(postId);
       video.play().catch(() => {});
       playIcon?.classList.remove("show");
       soundPop?.classList.remove("show", "is-paused");
+      showReelUi();
     }else{
       video.pause();
       playIcon?.classList.add("show");
@@ -1063,6 +1083,10 @@ openReelMode(postId);
 }
   
 function closeReelMode(){
+  clearTimeout(reelUiTimer);
+  clearTimeout(state.reelTapTimer);
+  state.reelTapTimer = null;
+  document.getElementById("aiftReelViewer")?.classList.remove("aift-reel-ui-hidden");
   const viewer = document.getElementById("aiftReelViewer");
 
   const savedY =
@@ -1183,7 +1207,10 @@ document.querySelectorAll(".aift-reel-play-indicator").forEach(icon => {
 });
 
 video.muted = state.globalVideoMuted;
-video.play().catch(() => {});
+video.play().then(showReelUi).catch(() => {
+  slide.querySelector(".aift-reel-play-indicator")?.classList.add("show");
+  showReelUi();
+});
       }else{
         video.pause();
       }
@@ -2000,7 +2027,7 @@ ${files.map((file, index) => {
 
       ${
         file.type.startsWith("video/")
-          ? `<video src="${url}" controls playsinline></video>`
+          ? renderVideoPreview(url)
           : `<img src="${url}" alt="">`
       }
     </div>
@@ -2038,6 +2065,22 @@ ${files.map((file, index) => {
 }
   
 
+function renderVideoPreview(url){
+  return `<div class="aift-clean-preview"><video src="${esc(url)}" playsinline preload="metadata" onended="this.parentElement.classList.remove('is-playing');this.nextElementSibling.textContent='▶';this.nextElementSibling.setAttribute('aria-label','Play video preview')"></video><button type="button" class="aift-preview-play" aria-label="Play video preview" onclick="AIFTFeed.togglePreviewVideo(this)">▶</button></div>`;
+}
+
+function togglePreviewVideo(button){
+  const video = button.previousElementSibling;
+  if(video.paused){
+    video.play().then(() => { button.textContent = "Ⅱ"; button.setAttribute("aria-label", "Pause video preview"); button.parentElement.classList.add("is-playing"); }).catch(() => toast("This format cannot be previewed in this browser. Try MP4 (H.264).", "error"));
+  }else{
+    video.pause();
+    button.textContent = "▶";
+    button.setAttribute("aria-label", "Play video preview");
+    button.parentElement.classList.remove("is-playing");
+  }
+}
+
 async function createPost() {
   if(!requireMember("create posts")) return;
   const textEl = document.getElementById("aiftPostText");
@@ -2047,6 +2090,11 @@ async function createPost() {
 
   const text = textEl?.value.trim() || "";
   const files = Array.from(mediaEl?.files || []);
+
+  if(files.length > 10 || files.some(file => file.size > 100 * 1024 * 1024)){
+    toast("Choose up to 10 images or videos, each no larger than 100 MB.", "error");
+    return;
+  }
 
   if (!text && !files.length) {
     toast("Please write something or add media first.");
@@ -3802,6 +3850,8 @@ function closeOverlays(clear = true) {
     loadMore,
     createPost,
     previewComposerMedia,
+    renderVideoPreview,
+    togglePreviewVideo,
     updateCarouselDots,
     likePost,
     doubleLike,

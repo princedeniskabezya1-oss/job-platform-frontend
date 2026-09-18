@@ -120,7 +120,7 @@
               <input
                 id="startPostMedia"
                 type="file"
-                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                accept="image/*,video/*"
                 multiple
                 onchange="previewStartPostMedia()"
               >
