@@ -1731,7 +1731,7 @@ function restoreFeedScroll(){
   function videoDeliveryUrl(url) {
     const value = String(url || "");
     if (!value.includes("res.cloudinary.com") || !value.includes("/video/upload/")) return value;
-    return value.replace("/video/upload/", "/video/upload/f_mp4,vc_h264,q_auto/");
+    return value.replace("/video/upload/", "/video/upload/f_mp4,vc_h264,fl_progressive,q_auto/");
   }
 
   function videoPosterUrl(url) {
@@ -2188,6 +2188,41 @@ async function createPost() {
     }
   }
 }
+function uploadPostWithProgress(endpoint, form, onProgress){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint);
+    xhr.setRequestHeader("Authorization", "Bearer " + getToken());
+    xhr.timeout = 15 * 60 * 1000;
+
+    xhr.upload.onprogress = event => {
+      if(event.lengthComputable){
+        onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      }
+    };
+
+    xhr.onload = () => {
+      let data = {};
+      try{
+        data = JSON.parse(xhr.responseText || "{}");
+      }catch{
+        data = {};
+      }
+
+      if(xhr.status >= 200 && xhr.status < 300){
+        resolve(data);
+        return;
+      }
+
+      reject(new Error(data.message || data.error || `Upload failed (${xhr.status}).`));
+    };
+
+    xhr.onerror = () => reject(new Error("The upload connection failed. Please check your connection and try again."));
+    xhr.ontimeout = () => reject(new Error("The upload took too long to finish. Please try again on a stable connection."));
+    xhr.send(form);
+  });
+}
+
     async function likePost(postId, silent = false) {
   if(!requireMember("like posts")) return;
     const post = getPost(postId);
