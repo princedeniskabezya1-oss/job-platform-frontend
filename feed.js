@@ -388,6 +388,13 @@ await loadFeed({ reset: true });
             <button class="aift-primary-btn" onclick="AIFTFeed.createPost()">Post</button>
           </div>
 
+          <div id="aiftComposerProgress" class="aift-composer-progress" hidden>
+            <div class="aift-composer-progress-track">
+              <div id="aiftComposerProgressBar" class="aift-composer-progress-bar"></div>
+            </div>
+            <span id="aiftComposerProgressText">Preparing upload...</span>
+          </div>
+
           <div id="aiftComposerPreview" class="aift-composer-preview"></div>
         </section>
 
@@ -1022,9 +1029,8 @@ function toggleReelSound(event){
   setAllVideoMuted(!state.globalVideoMuted, event?.currentTarget);
 }
 function toggleFeedVideoSound(event){
+  event?.preventDefault();
   event?.stopPropagation();
-
-  if(!isMobileNow()) return;
 
   const video = event.currentTarget
     ?.closest(".aift-video-wrap")
@@ -2110,8 +2116,144 @@ function togglePreviewVideo(button){
   }
 }
 
+function setComposerUploadProgress(percent, label = "") {
+  const wrap = document.getElementById("aiftComposerProgress");
+  const bar = document.getElementById("aiftComposerProgressBar");
+  const text = document.getElementById("aiftComposerProgressText");
+
+  if (!wrap) return;
+
+  const value = Math.max(0, Math.min(100, Number(percent) || 0));
+  wrap.hidden = false;
+
+  if (bar) bar.style.width = value + "%";
+  if (text) text.textContent = label || `Uploading ${Math.round(value)}%`;
+}
+
+function resetComposerUploadProgress() {
+  const wrap = document.getElementById("aiftComposerProgress");
+  const bar = document.getElementById("aiftComposerProgressBar");
+  const text = document.getElementById("aiftComposerProgressText");
+
+  if (bar) bar.style.width = "0%";
+  if (text) text.textContent = "Preparing upload...";
+  if (wrap) wrap.hidden = true;
+}
+
+async function getPostMediaUploadSignature(type) {
+  return api(
+    `${API}/api/posts/media-upload-signature?type=${encodeURIComponent(type)}`,
+    { headers: headers() }
+  );
+}
+
+function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const resourceType =
+      file.type?.startsWith("video/") ? "video" : "image";
+
+    const form = new FormData();
+    form.append("file", file);
+    form.append("api_key", signatureData.apiKey);
+    form.append("timestamp", String(signatureData.timestamp));
+    form.append("folder", signatureData.folder);
+    form.append("signature", signatureData.signature);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/${resourceType}/upload`
+    );
+    xhr.timeout = 30 * 60 * 1000;
+
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) {
+        onProgress?.(event.loaded, event.total);
+      }
+    };
+
+    xhr.onload = () => {
+      let data = {};
+
+      try {
+        data = JSON.parse(xhr.responseText || "{}");
+      } catch {}
+
+      if (
+        xhr.status >= 200 &&
+        xhr.status < 300 &&
+        String(data.secure_url || "").trim()
+      ) {
+        resolve({
+          url: data.secure_url,
+          type: resourceType
+        });
+        return;
+      }
+
+      reject(
+        new Error(
+          data?.error?.message ||
+          `Media upload failed (${xhr.status}).`
+        )
+      );
+    };
+
+    xhr.onerror = () =>
+      reject(new Error("The media upload connection failed. Please check your connection and try again."));
+
+    xhr.ontimeout = () =>
+      reject(new Error("The media upload took too long. Please try again on a stable connection."));
+
+    xhr.send(form);
+  });
+}
+
+async function uploadPostMediaDirect(files, onProgress) {
+  if (!files.length) return [];
+
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0) || 1;
+  const loadedByIndex = new Array(files.length).fill(0);
+  const results = new Array(files.length);
+  let nextIndex = 0;
+
+  const report = () => {
+    const loaded = loadedByIndex.reduce((sum, value) => sum + value, 0);
+    onProgress?.(Math.min(100, Math.round((loaded / totalBytes) * 100)));
+  };
+
+  async function worker() {
+    while (nextIndex < files.length) {
+      const index = nextIndex++;
+      const file = files[index];
+      const type = file.type?.startsWith("video/") ? "video" : "image";
+      const signature = await getPostMediaUploadSignature(type);
+
+      results[index] = await uploadFileDirectToCloudinary(
+        file,
+        signature,
+        loaded => {
+          loadedByIndex[index] = Math.min(file.size, loaded);
+          report();
+        }
+      );
+
+      loadedByIndex[index] = file.size;
+      report();
+    }
+  }
+
+  const workerCount = Math.min(2, files.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, () => worker())
+  );
+
+  return results;
+}
+
 async function createPost() {
   if(!requireMember("create posts")) return;
+
   const textEl = document.getElementById("aiftPostText");
   const mediaEl = document.getElementById("aiftPostMedia");
   const preview = document.getElementById("aiftComposerPreview");
@@ -2120,8 +2262,24 @@ async function createPost() {
   const text = textEl?.value.trim() || "";
   const files = Array.from(mediaEl?.files || []);
 
-  if(files.length > 10 || files.some(file => file.size > 250 * 1024 * 1024)){
-    toast("Choose up to 10 images or videos, each no larger than 250 MB.", "error");
+  if(files.length > 10){
+    toast("Choose up to 10 images or videos per post.", "error");
+    return;
+  }
+
+  const oversized = files.find(file => file.size > 250 * 1024 * 1024);
+  if(oversized){
+    const sizeMb = (oversized.size / (1024 * 1024)).toFixed(1);
+    toast(`${oversized.name} is ${sizeMb} MB. The limit is 250 MB per file.`, "error");
+    return;
+  }
+
+  const unsupported = files.find(file =>
+    !(file.type?.startsWith("image/") || file.type?.startsWith("video/"))
+  );
+
+  if(unsupported){
+    toast(`${unsupported.name} is not recognized as an image or video.`, "error");
     return;
   }
 
@@ -2134,19 +2292,8 @@ async function createPost() {
 
   if (postBtn) {
     postBtn.disabled = true;
-    postBtn.textContent = "Posting...";
+    postBtn.textContent = files.length ? "Uploading 0%" : "Posting...";
   }
-
-  const form = new FormData();
-  form.append("text", text);
-
-  if (state.mode === "group" && state.groupId) {
-    form.append("groupId", state.groupId);
-  }
-
-  files.forEach(file => {
-    form.append("media", file);
-  });
 
   const endpoint =
     state.mode === "group" && state.groupId
@@ -2154,13 +2301,49 @@ async function createPost() {
       : `${API}/api/posts`;
 
   try {
-    const response = await api(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + getToken()
-      },
-      body: form
-    });
+    let response;
+
+    if (state.mode === "group" && state.groupId) {
+      const form = new FormData();
+      form.append("text", text);
+      form.append("groupId", state.groupId);
+      files.forEach(file => form.append("media", file));
+
+      response = await uploadPostWithProgress(
+        endpoint,
+        form,
+        progress => {
+          setComposerUploadProgress(progress, `Uploading ${progress}%`);
+          if (postBtn) postBtn.textContent = progress >= 100 ? "Processing..." : `Uploading ${progress}%`;
+        }
+      );
+    } else if (files.length) {
+      const uploadedMedia = await uploadPostMediaDirect(
+        files,
+        progress => {
+          setComposerUploadProgress(progress, `Uploading ${progress}%`);
+          if (postBtn) postBtn.textContent = progress >= 100 ? "Publishing..." : `Uploading ${progress}%`;
+        }
+      );
+
+      setComposerUploadProgress(100, "Publishing post...");
+      if (postBtn) postBtn.textContent = "Publishing...";
+
+      response = await api(endpoint, {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          text,
+          media: uploadedMedia
+        })
+      });
+    } else {
+      response = await api(endpoint, {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ text })
+      });
+    }
 
     const post = response.post || response;
 
@@ -2186,14 +2369,17 @@ async function createPost() {
       freshBtn.disabled = false;
       freshBtn.textContent = "Post";
     }
+
+    setTimeout(resetComposerUploadProgress, 450);
   }
 }
+
 function uploadPostWithProgress(endpoint, form, onProgress){
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", endpoint);
     xhr.setRequestHeader("Authorization", "Bearer " + getToken());
-    xhr.timeout = 15 * 60 * 1000;
+    xhr.timeout = 30 * 60 * 1000;
 
     xhr.upload.onprogress = event => {
       if(event.lengthComputable){
