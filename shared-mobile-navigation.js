@@ -479,11 +479,12 @@
           }
         });
 
-      const mediaInput = homeFrame?.contentDocument?.getElementById("aiftPostMedia");
-      if(mediaInput){
-        mediaInput.click();
-        return;
-      }
+      try{
+        if(typeof homeFrame?.contentWindow?.openMobileComposer === "function"){
+          homeFrame.contentWindow.openMobileComposer();
+          return;
+        }
+      }catch{}
 
       showSection(new URL("home.html?compose=1",location.href));
       return;
