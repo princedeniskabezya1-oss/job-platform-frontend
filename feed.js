@@ -274,6 +274,8 @@ function saveHiddenComment(commentId){
       repost: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
       share: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>`,
       save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path></svg>`,
+      volume: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18 6a8.5 8.5 0 0 1 0 12"></path></svg>`,
+      volumeOff: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="m16 9 5 5"></path><path d="m21 9-5 5"></path></svg>`,
       more: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>`,
       close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`,
       check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>`,
@@ -644,7 +646,15 @@ function setupFeedRefresh(){
   }, { passive: true });
 }
 function updateSoundBadges(){
-  document.querySelectorAll(".aift-video-sound, .aift-reel-sound").forEach(btn => {
+  document.querySelectorAll(".aift-video-sound").forEach(btn => {
+    const muted = state.globalVideoMuted;
+    btn.innerHTML = muted ? svg("volumeOff") : svg("volume");
+    btn.classList.toggle("is-on", !muted);
+    btn.setAttribute("aria-label", muted ? "Unmute video" : "Mute video");
+    btn.setAttribute("title", muted ? "Unmute video" : "Mute video");
+  });
+
+  document.querySelectorAll(".aift-reel-sound").forEach(btn => {
     btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
     btn.classList.toggle("is-on", !state.globalVideoMuted);
   });
@@ -770,7 +780,7 @@ async function loadReelBatch({ reset = false } = {}){
   }
 }
 
-async function openReelMode(postId, refreshRecommendations = true){
+async function openReelMode(postId, refreshRecommendations = true, resumeTime = null){
   syncFeedHost(true, true);
   stopFeedPlaybackForReels();
 
@@ -939,16 +949,40 @@ if(!document.body.classList.contains("aift-reel-open")){
 modal.classList.add("show");
 
 const targetId =
-  sessionStorage.getItem("aiftLastReelPost") ||
-  postId;
+  postId ||
+  sessionStorage.getItem("aiftLastReelPost");
 
 const track = modal.querySelector(".aift-reel-track");
 const target = modal.querySelector(`[data-post-id="${CSS.escape(String(targetId))}"]`);
+const targetVideo = target?.querySelector(".aift-reel-video");
+const requestedResumeTime =
+  Number.isFinite(Number(resumeTime)) && Number(resumeTime) > 0
+    ? Number(resumeTime)
+    : null;
 
 if(track && target){
   track.style.scrollBehavior = "auto";
   track.scrollTop = target.offsetTop;
   state.reelActivePostId = targetId;
+}
+
+if(targetVideo && requestedResumeTime !== null){
+  const restoreTime = () => {
+    const duration = Number.isFinite(targetVideo.duration) ? targetVideo.duration : 0;
+    const safeTime = duration > 0
+      ? Math.min(requestedResumeTime, Math.max(0, duration - 0.05))
+      : requestedResumeTime;
+
+    try{
+      targetVideo.currentTime = safeTime;
+    }catch{}
+  };
+
+  if(targetVideo.readyState >= 1){
+    restoreTime();
+  }else{
+    targetVideo.addEventListener("loadedmetadata", restoreTime, { once:true });
+  }
 }
 
 requestAnimationFrame(() => {
@@ -1048,6 +1082,10 @@ function handleFeedVideoTap(event, postId){
     return;
   }
 
+  const feedVideo =
+    event.currentTarget?.querySelector?.(".aift-feed-video") ||
+    event.target.closest(".aift-video-wrap")?.querySelector(".aift-feed-video");
+
   if(state.feedVideoTapTimer){
     clearTimeout(state.feedVideoTapTimer);
     state.feedVideoTapTimer = null;
@@ -1058,8 +1096,9 @@ function handleFeedVideoTap(event, postId){
 
   state.feedVideoTapTimer = setTimeout(() => {
     state.feedVideoTapTimer = null;
-saveReelPosition(postId);
-openReelMode(postId);
+    const resumeTime = Number(feedVideo?.currentTime || 0);
+    saveReelPosition(postId);
+    openReelMode(postId, true, resumeTime);
   }, 280);
 }
 function handlePostMediaTap(event, postId){
@@ -1070,7 +1109,9 @@ function handlePostMediaTap(event, postId){
     return;
   }
 
-  const isVideo = Boolean(event.target.closest(".aift-video-wrap"));
+  const videoWrap = event.target.closest(".aift-video-wrap");
+  const isVideo = Boolean(videoWrap);
+  const feedVideo = videoWrap?.querySelector(".aift-feed-video");
 
   if(state.postMediaTapTimer){
     clearTimeout(state.postMediaTapTimer);
@@ -1084,8 +1125,9 @@ function handlePostMediaTap(event, postId){
     state.postMediaTapTimer = null;
 
     if(isVideo){
-saveReelPosition(postId);
-openReelMode(postId);
+      const resumeTime = Number(feedVideo?.currentTime || 0);
+      saveReelPosition(postId);
+      openReelMode(postId, true, resumeTime);
     }
   }, 280);
 }
@@ -1790,8 +1832,8 @@ function restoreFeedScroll(){
   type="button"
   onpointerdown="event.preventDefault(); event.stopPropagation();"
   onclick="event.preventDefault(); event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(event)"
->
-  Muted
+ aria-label="Unmute video" title="Unmute video">
+  ${svg("volumeOff")}
 </button>
    </div>`
                   : `<img class="aift-post-media" src="${esc(item.url)}" alt="Post media" loading="lazy" />`
@@ -3672,20 +3714,91 @@ async function sendSelectedPost(postId) {
     state.activeMenuPostId = postId;
     const post = getPost(postId);
     const author = post?.author || {};
-    const canManage = isMine(author._id) || isAdmin();
+    const owner = isMine(author._id);
+    const admin = isAdmin();
 
-    document.getElementById("aiftMenuBody").innerHTML = `
-      <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">${svg("close")}<span>Not interested</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
-      ${
-        canManage
-          ? `<button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>`
-          : `<button class="aift-sheet-option danger" onclick="AIFTFeed.reportPost('${esc(postId)}')">${svg("flag")}<span>Report</span></button>`
-      }
-    `;
+    document.getElementById("aiftMenuBody").innerHTML = owner
+      ? `
+        <button class="aift-sheet-option" onclick="AIFTFeed.openPostEditor('${esc(postId)}')">${svg("edit")}<span>Edit post</span></button>
+        <button class="aift-sheet-option" onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")}<span>Copy post link</span></button>
+        <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
+        <button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>
+      `
+      : admin
+        ? `
+          <button class="aift-sheet-option" onclick="AIFTFeed.openPostEditor('${esc(postId)}')">${svg("edit")}<span>Edit post</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")}<span>Copy post link</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
+          <button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>
+        `
+        : `
+          <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">${svg("close")}<span>Not interested</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
+          <button class="aift-sheet-option danger" onclick="AIFTFeed.reportPost('${esc(postId)}')">${svg("flag")}<span>Report</span></button>
+        `;
 
     openOverlay("aiftMenuSheet");
+  }
+
+  function openPostEditor(postId) {
+    const post = getPost(postId);
+    if (!post) return;
+
+    const body = document.getElementById("aiftMenuBody");
+    if (!body) return;
+
+    body.innerHTML = `
+      <div class="aift-owner-edit">
+        <strong>Edit post</strong>
+        <textarea id="aiftEditPostText" class="aift-repost-textarea" placeholder="Write your post...">${esc(post.text || "")}</textarea>
+        <div class="aift-owner-edit-actions">
+          <button class="aift-sheet-option" type="button" onclick="AIFTFeed.openPostMenu('${esc(postId)}')">${svg("close")}<span>Cancel</span></button>
+          <button class="aift-primary-btn" type="button" onclick="AIFTFeed.submitPostEdit('${esc(postId)}')">Save changes</button>
+        </div>
+      </div>
+    `;
+
+    requestAnimationFrame(() => {
+      const input = document.getElementById("aiftEditPostText");
+      input?.focus();
+      if(input) input.setSelectionRange(input.value.length, input.value.length);
+    });
+  }
+
+  async function submitPostEdit(postId) {
+    const input = document.getElementById("aiftEditPostText");
+    const text = input?.value.trim() || "";
+
+    if(!text){
+      toast("Post text cannot be empty.", "error");
+      return;
+    }
+
+    const saveBtn = document.querySelector("#aiftMenuBody .aift-primary-btn");
+    if(saveBtn){
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+    }
+
+    try{
+      const updated = await api(`${API}/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ text })
+      });
+
+      const post = updated.post || updated;
+      upsertPost(post);
+      closeOverlays();
+      toast("Post updated.");
+    }catch(err){
+      toast(err.message, "error");
+      if(saveBtn){
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save changes";
+      }
+    }
   }
 
 async function savePost(postId) {
@@ -4226,6 +4339,8 @@ replyTo,
     openRepost,
     submitRepost,
     openPostMenu,
+    openPostEditor,
+    submitPostEdit,
     removeComposerMedia,
     savePost,
     openReelMode,
