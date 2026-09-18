@@ -470,6 +470,21 @@
     }
 
     if(initialFile==="mobile-shell.html"){
+      const homeFrame = Array.from(document.querySelectorAll(".aift-section-view.is-current"))
+        .find(frame => {
+          try{
+            return (frame.contentWindow.location.pathname.split("/").pop() || "") === "home.html";
+          }catch{
+            return false;
+          }
+        });
+
+      const mediaInput = homeFrame?.contentDocument?.getElementById("aiftPostMedia");
+      if(mediaInput){
+        mediaInput.click();
+        return;
+      }
+
       showSection(new URL("home.html?compose=1",location.href));
       return;
     }
