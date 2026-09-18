@@ -2449,9 +2449,8 @@ await Promise.allSettled([
 
     if(window.innerWidth <= 760 && new URLSearchParams(location.search).get("compose") === "1"){
       requestAnimationFrame(() => {
-        const mediaInput = document.getElementById("aiftPostMedia");
-        if(mediaInput){
-          mediaInput.click();
+        if(typeof openStartPostModal === "function"){
+          openStartPostModal();
         }
         const cleanUrl = new URL(location.href);
         cleanUrl.searchParams.delete("compose");
@@ -2856,9 +2855,33 @@ async function submitStartPost(){
   const textEl = document.getElementById("startPostText");
   const mediaEl = document.getElementById("startPostMedia");
   const btn = document.getElementById("startPostSubmit");
+  const uploadProgress = document.querySelector(".start-upload-progress");
+  const uploadBar = document.getElementById("startUploadBar");
+  const uploadText = document.getElementById("startUploadText");
 
   const text = textEl?.value.trim() || "";
   const files = Array.from(mediaEl?.files || []);
+
+  if(files.length > 10){
+    alert("Choose up to 10 images or videos per post.");
+    return;
+  }
+
+  const oversized = files.find(file => file.size > 250 * 1024 * 1024);
+  if(oversized){
+    const sizeMb = (oversized.size / (1024 * 1024)).toFixed(1);
+    alert(`${oversized.name} is ${sizeMb} MB. The limit is 250 MB per file.`);
+    return;
+  }
+
+  const unsupported = files.find(file =>
+    !(file.type?.startsWith("image/") || file.type?.startsWith("video/"))
+  );
+
+  if(unsupported){
+    alert(`${unsupported.name} is not recognized as an image or video.`);
+    return;
+  }
 
   if(!text && !files.length){
     alert("Please write something or add a photo/video.");
@@ -2866,46 +2889,50 @@ async function submitStartPost(){
   }
 
   btn.disabled = true;
-  btn.textContent = "Posting...";
-  const uploadProgress = document.querySelector(".start-upload-progress");
+  btn.textContent = files.length ? "Uploading 0%" : "Posting...";
 
-if(uploadProgress){
-  uploadProgress.style.display = "flex";
-}
+  if(uploadProgress){
+    uploadProgress.style.display = files.length ? "flex" : "none";
+  }
 
-  const form = new FormData();
-  form.append("text", text);
-
-  files.forEach(file => {
-    form.append("media", file);
-  });
+  if(uploadBar) uploadBar.style.width = "0%";
+  if(uploadText) uploadText.textContent = files.length ? "0%" : "";
 
   try{
-const res = await uploadPostWithProgress(form, percent => {
-  const bar = document.getElementById("startUploadBar");
-  const text = document.getElementById("startUploadText");
+    let uploadedMedia = [];
 
-  if(bar) bar.style.width = percent + "%";
-  if(text) text.textContent = percent + "%";
-});
+    if(files.length){
+      uploadedMedia = await AIFTFeed.uploadPostMediaDirect(files, percent => {
+        if(uploadBar) uploadBar.style.width = percent + "%";
+        if(uploadText) uploadText.textContent = percent + "%";
+        btn.textContent = percent >= 100 ? "Publishing..." : `Uploading ${percent}%`;
+      });
+    }
+
+    if(uploadBar && files.length) uploadBar.style.width = "100%";
+    if(uploadText && files.length) uploadText.textContent = "100%";
+    btn.textContent = "Publishing...";
+
+    const res = await fetch(API + "/api/posts", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token()}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text,
+        media: uploadedMedia
+      })
+    });
 
     const data = await res.json().catch(() => ({}));
 
     if(!res.ok){
       throw new Error(data.message || "Post failed");
     }
-if(uploadProgress){
-  uploadProgress.style.display = "none";
-}
 
-const uploadBar = document.getElementById("startUploadBar");
-const uploadText = document.getElementById("startUploadText");
-
-if(uploadBar) uploadBar.style.width = "0%";
-if(uploadText) uploadText.textContent = "0%";
-
-resetStartPostModal();
-closeStartPostModal();
+    resetStartPostModal();
+    closeStartPostModal();
 
     await AIFTFeed.mount("feedMount", {
       mode:"home",
@@ -2922,32 +2949,6 @@ closeStartPostModal();
     btn.textContent = "Post";
   }
 }
-  function uploadPostWithProgress(form, onProgress){
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-
-    xhr.open("POST", API + "/api/posts");
-
-    xhr.setRequestHeader("Authorization", `Bearer ${token()}`);
-
-    xhr.upload.onprogress = event => {
-      if(event.lengthComputable){
-        const percent = Math.round((event.loaded / event.total) * 100);
-        onProgress(percent);
-      }
-    };
-
-    xhr.onload = () => {
-      resolve({
-        ok: xhr.status >= 200 && xhr.status < 300,
-        status: xhr.status,
-        json: async () => JSON.parse(xhr.responseText || "{}")
-      });
-    };
-
-    xhr.onerror = () => reject(new Error("Upload failed"));
-    xhr.send(form);
-  });
 }
 </script>
 <style>
