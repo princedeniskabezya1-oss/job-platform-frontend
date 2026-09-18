@@ -2147,27 +2147,38 @@ async function getPostMediaUploadSignature(type) {
   );
 }
 
-function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
+function cloudinaryUploadForm(filePart, fileName, signatureData) {
+  const form = new FormData();
+  form.append("file", filePart, fileName);
+  form.append("api_key", signatureData.apiKey);
+  form.append("timestamp", String(signatureData.timestamp));
+  form.append("folder", signatureData.folder);
+  form.append("signature", signatureData.signature);
+  return form;
+}
+
+function cloudinaryUploadEndpoint(signatureData, resourceType) {
+  return `https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/${resourceType}/upload`;
+}
+
+function uploadCloudinaryRequest({
+  endpoint,
+  form,
+  timeout,
+  headers: requestHeaders = {},
+  onProgress
+}) {
   return new Promise((resolve, reject) => {
-    const resourceType =
-      file.type?.startsWith("video/") ? "video" : "image";
-
-    const form = new FormData();
-    form.append("file", file);
-    form.append("api_key", signatureData.apiKey);
-    form.append("timestamp", String(signatureData.timestamp));
-    form.append("folder", signatureData.folder);
-    form.append("signature", signatureData.signature);
-
     const xhr = new XMLHttpRequest();
-    xhr.open(
-      "POST",
-      `https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/${resourceType}/upload`
-    );
-    xhr.timeout = 30 * 60 * 1000;
+    xhr.open("POST", endpoint);
+    xhr.timeout = timeout;
+
+    Object.entries(requestHeaders).forEach(([name, value]) => {
+      xhr.setRequestHeader(name, value);
+    });
 
     xhr.upload.onprogress = event => {
-      if (event.lengthComputable) {
+      if(event.lengthComputable){
         onProgress?.(event.loaded, event.total);
       }
     };
@@ -2179,15 +2190,8 @@ function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
         data = JSON.parse(xhr.responseText || "{}");
       } catch {}
 
-      if (
-        xhr.status >= 200 &&
-        xhr.status < 300 &&
-        String(data.secure_url || "").trim()
-      ) {
-        resolve({
-          url: data.secure_url,
-          type: resourceType
-        });
+      if(xhr.status >= 200 && xhr.status < 300){
+        resolve(data);
         return;
       }
 
@@ -2207,6 +2211,92 @@ function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
 
     xhr.send(form);
   });
+}
+
+async function uploadLargeFileDirectToCloudinary(
+  file,
+  signatureData,
+  resourceType,
+  onProgress
+) {
+  const endpoint = cloudinaryUploadEndpoint(signatureData, resourceType);
+  const chunkSize = 20 * 1024 * 1024;
+  const uploadId =
+    globalThis.crypto?.randomUUID?.() ||
+    `aift-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  let start = 0;
+  let finalResponse = null;
+
+  while(start < file.size){
+    const endExclusive = Math.min(start + chunkSize, file.size);
+    const chunk = file.slice(start, endExclusive);
+    const form = cloudinaryUploadForm(chunk, file.name, signatureData);
+
+    const response = await uploadCloudinaryRequest({
+      endpoint,
+      form,
+      timeout: 10 * 60 * 1000,
+      headers: {
+        "X-Unique-Upload-Id": uploadId,
+        "Content-Range": `bytes ${start}-${endExclusive - 1}/${file.size}`
+      },
+      onProgress: loaded => {
+        onProgress?.(Math.min(file.size, start + loaded), file.size);
+      }
+    });
+
+    finalResponse = response;
+    start = endExclusive;
+    onProgress?.(start, file.size);
+  }
+
+  if(!String(finalResponse?.secure_url || "").trim()){
+    throw new Error("Cloudinary finished receiving the video but did not return a media URL.");
+  }
+
+  return {
+    url: finalResponse.secure_url,
+    type: resourceType
+  };
+}
+
+async function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
+  const resourceType =
+    file.type?.startsWith("video/") ? "video" : "image";
+
+  /*
+    Cloudinary requires chunked Upload API calls above 100 MB.
+    Keep a little headroom so large phone videos never hit the
+    single-request ceiling.
+  */
+  if(file.size > 95 * 1024 * 1024){
+    return uploadLargeFileDirectToCloudinary(
+      file,
+      signatureData,
+      resourceType,
+      onProgress
+    );
+  }
+
+  const endpoint = cloudinaryUploadEndpoint(signatureData, resourceType);
+  const form = cloudinaryUploadForm(file, file.name, signatureData);
+
+  const data = await uploadCloudinaryRequest({
+    endpoint,
+    form,
+    timeout: 30 * 60 * 1000,
+    onProgress
+  });
+
+  if(!String(data.secure_url || "").trim()){
+    throw new Error("Media upload completed without a delivery URL.");
+  }
+
+  return {
+    url: data.secure_url,
+    type: resourceType
+  };
 }
 
 async function uploadPostMediaDirect(files, onProgress) {
