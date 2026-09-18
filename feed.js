@@ -807,7 +807,9 @@ modal.style.visibility = "visible";
           >
             <video
               class="aift-reel-video"
-              src="${esc(video.url)}"
+              src="${esc(videoDeliveryUrl(video.url))}"
+              poster="${esc(videoPosterUrl(video.url))}"
+              data-original-src="${esc(video.url)}"
               ${state.globalVideoMuted ? "muted" : ""}
               playsinline
               loop
@@ -1726,6 +1728,30 @@ function restoreFeedScroll(){
     return [];
   }
 
+  function videoDeliveryUrl(url) {
+    const value = String(url || "");
+    if (!value.includes("res.cloudinary.com") || !value.includes("/video/upload/")) return value;
+    return value.replace("/video/upload/", "/video/upload/f_mp4,vc_h264,q_auto/");
+  }
+
+  function videoPosterUrl(url) {
+    const value = String(url || "");
+    if (!value.includes("res.cloudinary.com") || !value.includes("/video/upload/")) return "";
+    return value
+      .replace("/video/upload/", "/video/upload/f_jpg,so_0,q_auto/")
+      .replace(/\.[a-z0-9]+(?=\?|$)/i, ".jpg");
+  }
+
+  function retryVideoSource(video) {
+    if (!video || video.dataset.fallbackUsed === "true") return;
+    const original = video.dataset.originalSrc;
+    if (!original || video.currentSrc === original || video.src === original) return;
+    video.dataset.fallbackUsed = "true";
+    video.src = original;
+    video.load();
+    video.play().catch(() => {});
+  }
+
   function renderMediaCarousel(post) {
     const items = getMediaItems(post);
     if (!items.length) return "";
@@ -1740,12 +1766,15 @@ function restoreFeedScroll(){
 ? `<div class="aift-video-wrap">
 <video
   class="aift-post-media aift-feed-video"
-  src="${esc(item.url)}"
+  src="${esc(videoDeliveryUrl(item.url))}"
+  poster="${esc(videoPosterUrl(item.url))}"
+  data-original-src="${esc(item.url)}"
   muted
   playsinline
   loop
-  preload="metadata"
+  preload="auto"
   data-post-id="${esc(post._id)}"
+  onerror="AIFTFeed.retryVideoSource(this)"
   
   ondblclick="event.preventDefault(); event.stopPropagation();"
 ></video>
@@ -3924,6 +3953,7 @@ closeReelMode,
 handleReelScreenTap,
 setAllVideoMuted,
     handleFeedVideoTap,
+    retryVideoSource,
 toggleFeedVideoSound,
     handlePostMediaTap,
     
