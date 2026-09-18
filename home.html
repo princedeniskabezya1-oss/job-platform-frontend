@@ -2447,6 +2447,18 @@ await Promise.allSettled([
 
     enhanceFeedAfterRender();
 
+    if(window.innerWidth <= 760 && new URLSearchParams(location.search).get("compose") === "1"){
+      requestAnimationFrame(() => {
+        const mediaInput = document.getElementById("aiftPostMedia");
+        if(mediaInput){
+          mediaInput.click();
+        }
+        const cleanUrl = new URL(location.href);
+        cleanUrl.searchParams.delete("compose");
+        history.replaceState(history.state, "", cleanUrl.href);
+      });
+    }
+
   }catch(err){
 
     console.error(err);
