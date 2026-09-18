@@ -1715,10 +1715,10 @@ function restoreFeedScroll(){
 }
   function getMediaItems(post = {}) {
     if (Array.isArray(post.media) && post.media.length) {
-      return post.media;
+      return post.media.filter(item => String(item?.url || "").trim());
     }
 
-    if (post.mediaUrl) {
+    if (String(post.mediaUrl || "").trim()) {
       return [{
         url: post.mediaUrl,
         type: post.mediaType || "image"
