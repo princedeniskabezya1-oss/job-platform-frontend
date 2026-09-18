@@ -4099,6 +4099,7 @@ function closeOverlays(clear = true) {
     mount,
     loadMore,
     createPost,
+    uploadPostMediaDirect,
     previewComposerMedia,
     renderVideoPreview,
     togglePreviewVideo,
