@@ -2357,10 +2357,10 @@ async function createPost() {
     return;
   }
 
-  const oversized = files.find(file => file.size > 250 * 1024 * 1024);
+  const oversized = files.find(file => file.size > 100 * 1024 * 1024);
   if(oversized){
     const sizeMb = (oversized.size / (1024 * 1024)).toFixed(1);
-    toast(`${oversized.name} is ${sizeMb} MB. The limit is 250 MB per file.`, "error");
+    toast(`${oversized.name} is ${sizeMb} MB. The current media storage limit is 100 MB per file.`, "error");
     return;
   }
 
