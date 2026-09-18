@@ -100,6 +100,8 @@
     conversations:[],
     activeConversation:null,
     activeMessages:[],
+    investorAnonymous:
+      localStorage.getItem("aiftFamilyInvestorAnonymous") === "true",
     notifications:[],
     familyStudentLinks:[]
   };
@@ -325,6 +327,39 @@
     }
     $("#familyModeInvestor")?.classList.toggle("active",state.mode === "investor");
     $("#familyModeFamily")?.classList.toggle("active",state.mode === "family");
+    updateFamilyChatPrivacyUi();
+  }
+
+  function updateFamilyChatPrivacyUi(){
+    const enabled =
+      state.profile?.familyProfile?.investorEnabled === true &&
+      state.mode === "investor";
+    const toggle = $("#familyAnonymousToggle");
+    const wrap = $("#familyAnonymousToggleWrap");
+    const copy = $("#familyChatPrivacyCopy");
+
+    if(toggle){
+      toggle.disabled = !enabled;
+      toggle.checked = enabled && state.investorAnonymous === true;
+    }
+
+    wrap?.classList.toggle("is-disabled",!enabled);
+
+    if(copy){
+      copy.textContent = enabled
+        ? (state.investorAnonymous
+            ? "Your new Investor Mode messages will appear as Anonymous Investor."
+            : "Your name and profile are visible in Investor Mode messages.")
+        : "Switch to Investor Mode to use anonymous conversations.";
+    }
+
+    const status = $("#familyChatIdentityStatus");
+    if(status && state.activeConversation){
+      status.textContent =
+        state.activeConversation.myAnonymousMode === true
+          ? "Sending as Anonymous Investor"
+          : "Family Chat";
+    }
   }
 
   async function enableInvestorMode(){
@@ -355,11 +390,6 @@
   }
 
   function openPage(page){
-    if(page === "messages"){
-      window.location.href = "messages.html";
-      return;
-    }
-
     state.page = page;
     $$(".family-page").forEach(section => section.classList.remove("active"));
     document.getElementById(`familyPage-${page}`)?.classList.add("active");
@@ -1309,18 +1339,50 @@
       toast("Could not identify the message recipient.","error");
       return;
     }
-    window.location.href = `messages.html?user=${encodeURIComponent(id)}`;
+
+    const investorMode =
+      state.mode === "investor" &&
+      state.profile?.familyProfile?.investorEnabled === true;
+
+    try{
+      const data = await api("/api/family/chat/direct",{
+        method:"POST",
+        body:{
+          userId:id,
+          mode:investorMode ? "investor" : "family",
+          anonymous:investorMode && state.investorAnonymous === true
+        }
+      });
+
+      state.conversations = [];
+      await loadMessages(true);
+      openPage("messages");
+
+      const conversationId =
+        data?.conversation?._id ||
+        data?.conversation?.conversationId;
+
+      if(conversationId){
+        await openConversation(conversationId);
+      }
+    }catch(error){
+      toast(error.message,"error");
+    }
   }
 
   async function loadMessages(force = false){
     if(state.conversations.length && !force){ renderConversations(); return; }
-    setHtml("#familyConversationList",`<div class="family-loading">Loading conversations…</div>`);
+    setHtml("#familyConversationList",`<div class="family-loading">Loading Family conversations…</div>`);
     try{
-      const data = await api("/api/conversations?limit=100");
-      state.conversations = Array.isArray(data) ? data : [];
+      const data = await api("/api/family/chat/conversations");
+      state.conversations = Array.isArray(data?.conversations)
+        ? data.conversations
+        : [];
       renderConversations();
       updateMessageCounts();
-    }catch(error){ setHtml("#familyConversationList",`<div class="family-error">${escapeHtml(error.message)}</div>`); }
+    }catch(error){
+      setHtml("#familyConversationList",`<div class="family-error">${escapeHtml(error.message)}</div>`);
+    }
   }
 
   function updateMessageCounts(){
@@ -1332,74 +1394,217 @@
 
   function renderConversations(){
     if(!state.conversations.length){
-      setHtml("#familyConversationList",`<div class="family-empty">No conversations yet. Use Message on a school or other AIFT profile to start one.</div>`);
+      setHtml("#familyConversationList",`<div class="family-empty">No Family conversations yet. Use Message on a school, opportunity or Venture to start one.</div>`);
       return;
     }
+
     setHtml("#familyConversationList",state.conversations.map(conversation => {
-      const name = conversation.displayName || conversation.title || conversation.user?.companyName || conversation.user?.schoolName || conversation.user?.name || "Conversation";
-      const image = conversation.displayImage || conversation.user?.profileImage || conversation.user?.logo || "";
+      const name = conversation.displayName || "Family conversation";
+      const image = conversation.displayImage || "";
       const active = String(state.activeConversation?._id || "") === String(conversation._id);
-      return `<button class="family-conversation-item ${active ? "active" : ""}" type="button" data-conversation-id="${escapeHtml(conversation._id)}">${image ? `<div class="family-avatar"><img src="${escapeHtml(image)}" alt="${escapeHtml(name)}"></div>` : `<div class="family-avatar">${escapeHtml(initials(name))}</div>`}<div class="family-conversation-copy"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(conversation.lastMessage?.text || conversation.lastMessage || "No messages yet")}</span></div>${Number(conversation.unreadCount || 0) > 0 ? `<span class="family-chip active">${escapeHtml(conversation.unreadCount)}</span>` : ""}</button>`;
+      const privacy = conversation.anonymous
+        ? "Anonymous Investor"
+        : conversation.mode === "investor"
+          ? "Investor conversation"
+          : "Family conversation";
+
+      return `<button class="family-conversation-item ${active ? "active" : ""}" type="button" data-conversation-id="${escapeHtml(conversation._id)}">
+        ${image
+          ? `<div class="family-avatar"><img src="${escapeHtml(image)}" alt="${escapeHtml(name)}"></div>`
+          : `<div class="family-avatar">${escapeHtml(conversation.anonymous ? "AI" : initials(name))}</div>`}
+        <div class="family-conversation-copy">
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(conversation.lastMessage || privacy)}</span>
+        </div>
+        ${Number(conversation.unreadCount || 0) > 0
+          ? `<span class="family-chip active">${escapeHtml(conversation.unreadCount)}</span>`
+          : ""}
+      </button>`;
     }).join(""));
   }
 
   async function openConversation(id){
-    const conversation = state.conversations.find(item => String(item._id) === String(id));
+    const conversation = state.conversations.find(
+      item => String(item._id) === String(id)
+    );
+
     if(!conversation) return;
+
     state.activeConversation = conversation;
+    state.investorAnonymous = conversation.myAnonymousMode === true
+      ? true
+      : state.investorAnonymous;
+
     renderConversations();
-    const name = conversation.displayName || conversation.title || conversation.user?.companyName || conversation.user?.schoolName || conversation.user?.name || "Conversation";
-    setText("#familyChatHead",name);
+    setText("#familyChatHead",conversation.displayName || "Family conversation");
+
+    const status = $("#familyChatIdentityStatus");
+    if(status){
+      status.textContent = conversation.myAnonymousMode === true
+        ? "Sending as Anonymous Investor"
+        : conversation.mode === "investor"
+          ? "Investor conversation"
+          : "Family Chat";
+    }
+
     $("#familyChatInput").disabled = false;
     $("#familyChatSend").disabled = false;
-    setHtml("#familyChatMessages",`<div class="family-loading">Loading messages…</div>`);
+    updateFamilyChatPrivacyUi();
+
+    setHtml("#familyChatMessages",`<div class="family-loading">Loading Family messages…</div>`);
+
     try{
-      const messages = await api(`/api/conversations/${encodeURIComponent(id)}/messages?limit=100`);
-      state.activeMessages = Array.isArray(messages) ? messages : [];
-      await api(`/api/conversations/${encodeURIComponent(id)}/read`,{ method:"PATCH" }).catch(() => null);
+      const result = await api(
+        `/api/family/chat/${encodeURIComponent(id)}/messages`
+      );
+
+      state.activeMessages = Array.isArray(result?.messages)
+        ? result.messages
+        : [];
+
+      await api(
+        `/api/family/chat/${encodeURIComponent(id)}/read`,
+        { method:"PATCH" }
+      ).catch(() => null);
+
       conversation.unreadCount = 0;
       renderActiveMessages();
       updateMessageCounts();
-    }catch(error){ setHtml("#familyChatMessages",`<div class="family-error">${escapeHtml(error.message)}</div>`); }
+    }catch(error){
+      setHtml(
+        "#familyChatMessages",
+        `<div class="family-error">${escapeHtml(error.message)}</div>`
+      );
+    }
   }
 
   function renderActiveMessages(){
-    const currentId = String(state.profile?.user?.id || "");
     if(!state.activeMessages.length){
-      setHtml("#familyChatMessages",`<div class="family-empty">No messages in this conversation yet.</div>`);
+      setHtml(
+        "#familyChatMessages",
+        `<div class="family-empty">No messages in this Family conversation yet.</div>`
+      );
       return;
     }
-    setHtml("#familyChatMessages",state.activeMessages.map(message => {
-      const senderId = String(message.sender?._id || message.sender || "");
-      return `<div class="family-message-bubble ${senderId === currentId ? "mine" : ""}">${escapeHtml(message.text || (message.fileUrl ? "Attachment" : ""))}<div class="family-help">${escapeHtml(formatDateTime(message.createdAt))}</div></div>`;
-    }).join(""));
+
+    setHtml(
+      "#familyChatMessages",
+      state.activeMessages.map(message => {
+        const author = message.mine
+          ? (message.senderAnonymous ? "Anonymous Investor" : "You")
+          : (message.senderDisplayName || "AIFT Member");
+
+        return `<div class="family-message-bubble ${message.mine ? "mine" : ""}">
+          <span class="family-message-author">${escapeHtml(author)}</span>
+          ${escapeHtml(message.text || "")}
+          <div class="family-help">${escapeHtml(formatDateTime(message.createdAt))}</div>
+        </div>`;
+      }).join("")
+    );
+
     const box = $("#familyChatMessages");
     if(box) box.scrollTop = box.scrollHeight;
   }
 
+  async function setFamilyChatAnonymous(anonymous){
+    if(
+      state.mode !== "investor" ||
+      state.profile?.familyProfile?.investorEnabled !== true
+    ){
+      state.investorAnonymous = false;
+      localStorage.setItem("aiftFamilyInvestorAnonymous","false");
+      updateFamilyChatPrivacyUi();
+      return;
+    }
+
+    state.investorAnonymous = Boolean(anonymous);
+    localStorage.setItem(
+      "aiftFamilyInvestorAnonymous",
+      state.investorAnonymous ? "true" : "false"
+    );
+
+    if(state.activeConversation){
+      try{
+        await api(
+          `/api/family/chat/${encodeURIComponent(state.activeConversation._id)}/privacy`,
+          {
+            method:"PATCH",
+            body:{ anonymous:state.investorAnonymous }
+          }
+        );
+
+        state.activeConversation.myAnonymousMode = state.investorAnonymous;
+
+        const match = state.conversations.find(
+          item => String(item._id) === String(state.activeConversation._id)
+        );
+
+        if(match){
+          match.myAnonymousMode = state.investorAnonymous;
+        }
+
+        toast(
+          state.investorAnonymous
+            ? "Anonymous Investor mode is on for this conversation."
+            : "Your profile identity is visible in this conversation.",
+          "success"
+        );
+      }catch(error){
+        state.investorAnonymous = !state.investorAnonymous;
+        localStorage.setItem(
+          "aiftFamilyInvestorAnonymous",
+          state.investorAnonymous ? "true" : "false"
+        );
+        toast(error.message,"error");
+      }
+    }
+
+    updateFamilyChatPrivacyUi();
+  }
+
   async function sendMessage(event){
     event.preventDefault();
+
     const input = $("#familyChatInput");
     const value = input.value.trim();
+
     if(!value || !state.activeConversation) return;
-    const participants = state.activeConversation.participants || [];
-    const currentId = String(state.profile?.user?.id || "");
-    const otherParticipant = participants.find(participant => String(participant.user?._id || participant.user || "") !== currentId);
-    const receiverId = state.activeConversation.user?._id || otherParticipant?.user?._id || otherParticipant?.user;
-    if(!receiverId){ toast("Could not identify the message recipient.","error"); return; }
+
     input.disabled = true;
+    $("#familyChatSend").disabled = true;
+
     try{
-      const message = await api("/api/messages",{
-        method:"POST",
-        body:{ receiverId,text:value }
-      });
+      const result = await api(
+        `/api/family/chat/${encodeURIComponent(state.activeConversation._id)}/messages`,
+        {
+          method:"POST",
+          body:{ text:value }
+        }
+      );
+
       input.value = "";
-      state.activeMessages.push(message);
+
+      if(result?.message){
+        state.activeMessages.push(result.message);
+      }
+
       renderActiveMessages();
-      state.conversations = [];
       await loadMessages(true);
-    }catch(error){ toast(error.message,"error"); }
-    finally{ input.disabled = false; input.focus(); }
+
+      const refreshed = state.conversations.find(
+        item => String(item._id) === String(state.activeConversation?._id)
+      );
+
+      if(refreshed){
+        state.activeConversation = refreshed;
+      }
+    }catch(error){
+      toast(error.message,"error");
+    }finally{
+      input.disabled = false;
+      $("#familyChatSend").disabled = false;
+      input.focus();
+    }
   }
 
   function isFamilyRelevantNotification(item){
@@ -1499,7 +1704,7 @@
         return;
       }
 
-      if(event.target.closest("#familyMessagesButton")){ window.location.href = "messages.html"; return; }
+      if(event.target.closest("#familyMessagesButton")){ openPage("messages"); return; }
       if(event.target.closest("#familyNotificationsButton")){ openPage("notifications"); return; }
       if(event.target.closest("#familyEnableInvestor")){ await enableInvestorMode(); return; }
 
@@ -1602,6 +1807,9 @@
     $("#familyMessagesRefresh")?.addEventListener("click",() => loadMessages(true));
     $("#familyNotificationsRefresh")?.addEventListener("click",() => loadNotifications(true));
     $("#familyChatForm")?.addEventListener("submit",sendMessage);
+    $("#familyAnonymousToggle")?.addEventListener("change",event => {
+      setFamilyChatAnonymous(event.target.checked);
+    });
     $("#familyGlobalSearch")?.addEventListener("keydown",globalSearch);
     $("#familyRefreshRecommendations")?.addEventListener("click",() => loadOverview(true));
   }
