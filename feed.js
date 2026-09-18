@@ -2357,13 +2357,6 @@ async function createPost() {
     return;
   }
 
-  const oversized = files.find(file => file.size > 250 * 1024 * 1024);
-  if(oversized){
-    const sizeMb = (oversized.size / (1024 * 1024)).toFixed(1);
-    toast(`${oversized.name} is ${sizeMb} MB. The limit is 250 MB per file.`, "error");
-    return;
-  }
-
   const unsupported = files.find(file =>
     !(file.type?.startsWith("image/") || file.type?.startsWith("video/"))
   );
