@@ -2091,8 +2091,8 @@ async function createPost() {
   const text = textEl?.value.trim() || "";
   const files = Array.from(mediaEl?.files || []);
 
-  if(files.length > 10 || files.some(file => file.size > 100 * 1024 * 1024)){
-    toast("Choose up to 10 images or videos, each no larger than 100 MB.", "error");
+  if(files.length > 10 || files.some(file => file.size > 250 * 1024 * 1024)){
+    toast("Choose up to 10 images or videos, each no larger than 250 MB.", "error");
     return;
   }
 
