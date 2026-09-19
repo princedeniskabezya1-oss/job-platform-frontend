@@ -4,6 +4,7 @@
   let sectionLastScroll = 0;
   let sectionScrollTicking = false;
   let sectionChromeHidden = false;
+  let composerChromeHidden = false;
   const nestedScrollPositions=new WeakMap();
   const initialFile=location.pathname.split("/").pop()||"home.html";
   const sectionDocument=document.documentElement.classList.contains("aift-section-document");
@@ -78,7 +79,7 @@
   }
 
   function setDashboardNavigationHidden(hidden){
-    const shouldHide=Boolean(hidden);
+    const shouldHide=Boolean(hidden) || composerChromeHidden;
     document.body.classList.toggle("aift-employer-dashboard-active",shouldHide);
     document.querySelector(".aift-mobile-nav")?.classList.toggle("aift-mobile-nav--dashboard-hidden",shouldHide);
     document.body.style.setProperty("padding-bottom",shouldHide?"0px":"");
@@ -299,6 +300,13 @@
 
     addEventListener("message",event=>{
       if(event.origin!==location.origin)return;
+      if(event.data?.type==="aift:composer-chrome"){
+        composerChromeHidden=Boolean(event.data.hidden);
+        setDashboardNavigationHidden(composerChromeHidden);
+        const bounds=sectionBounds();
+        document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
+        return;
+      }
       if(event.data?.type==="aift:dashboard-chrome"){
         setDashboardNavigationHidden(event.data.hidden);
         const bounds=sectionBounds();
@@ -313,7 +321,7 @@
           return;
         }
         const nav=document.querySelector(".aift-mobile-nav");
-        nav?.classList.toggle("aift-mobile-nav--hidden",Boolean(event.data.hidden));
+        nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden || Boolean(event.data.hidden));
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;
@@ -408,7 +416,9 @@
 
     if(up || current <= 8){
       topbar.classList.remove("is-hidden");
-      nav.classList.remove("aift-mobile-nav--hidden");
+      if(!composerChromeHidden){
+        nav.classList.remove("aift-mobile-nav--hidden");
+      }
     }
 
     lastScroll = current;
@@ -433,7 +443,7 @@
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
     if(current>previous+2&&current>8)nav.classList.add("aift-mobile-nav--hidden");
-    if(current<previous-2||current<=8)nav.classList.remove("aift-mobile-nav--hidden");
+    if((current<previous-2||current<=8)&&!composerChromeHidden)nav.classList.remove("aift-mobile-nav--hidden");
   }
 
   window.openMobileComposer = window.openMobileComposer || function(event){
