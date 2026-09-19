@@ -827,6 +827,7 @@ modal.style.visibility = "visible";
         const video = getMediaItems(post).find(item => item.type === "video");
         const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
         const commentsCount = countComments(post);
+        const verified = isVerified(author);
 
         return `
           <section
@@ -867,18 +868,24 @@ modal.style.visibility = "visible";
             <div class="aift-reel-info">
 <div class="aift-reel-author">
 
-  <div
+  <button
+    type="button"
     class="aift-reel-author-main"
     onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')"
+    aria-label="Open ${esc(userName(author))} profile"
   >
     <img src="${esc(userAvatar(author))}" alt="">
-    <strong>${esc(userName(author))}</strong>
-  </div>
+    <span class="aift-reel-author-name">
+      <strong>${esc(userName(author))}</strong>
+      ${verified ? `<span class="aift-reel-verified" title="Verified">${svg("check")}</span>` : ""}
+    </span>
+  </button>
 
   ${
     String(author._id) !== String(state.meId)
       ? `
       <button
+        type="button"
         class="aift-reel-follow-btn ${isFollowing(author) ? "is-following" : isFollowRequested(author) ? "is-requested" : ""}"
         data-follow-user="${esc(author._id)}"
         onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
