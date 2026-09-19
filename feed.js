@@ -274,6 +274,7 @@ function saveHiddenComment(commentId){
       repost: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
       share: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>`,
       save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path></svg>`,
+      eye: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
       volume: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18 6a8.5 8.5 0 0 1 0 12"></path></svg>`,
       volumeOff: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="m16 9 5 5"></path><path d="m21 9-5 5"></path></svg>`,
       more: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>`,
@@ -921,6 +922,15 @@ modal.style.visibility = "visible";
                 <span>${formatCount(post.sharesCount || 0)}</span>
               </button>
 
+              <div
+                class="aift-reel-view-count"
+                aria-label="${formatCount(post.viewsCount || 0)} views"
+                title="Views"
+              >
+                ${svg("eye")}
+                <span id="aift-reel-view-count-${safeId(post._id)}">${formatCount(post.viewsCount || 0)}</span>
+              </div>
+
               <button
                 id="aift-reel-save-${safeId(post._id)}"
                 onclick="event.stopPropagation(); AIFTFeed.handleReelSave('${esc(post._id)}')"
@@ -1236,6 +1246,10 @@ function observeReelVideos(){
         });
 
 state.reelActivePostId = postId;
+
+if(postId){
+  trackView(postId);
+}
 
 const slides = Array.from(document.querySelectorAll(".aift-reel-slide"));
 const activeIndex = slides.indexOf(slide);
@@ -3670,8 +3684,17 @@ async function sendSelectedPost(postId) {
   }
 
   function updateViewCount(postId, viewsCount) {
-    const count = document.getElementById(`aift-views-count-${safeId(postId)}`);
-    if (count) count.textContent = String(viewsCount || 0);
+    const value = Math.max(Number(viewsCount || 0), 0);
+    const feedCount = document.getElementById(`aift-views-count-${safeId(postId)}`);
+    const reelCount = document.getElementById(`aift-reel-view-count-${safeId(postId)}`);
+
+    if(feedCount) feedCount.textContent = formatCount(value);
+    if(reelCount) reelCount.textContent = formatCount(value);
+
+    const reelWrap = reelCount?.closest(".aift-reel-view-count");
+    if(reelWrap){
+      reelWrap.setAttribute("aria-label", `${formatCount(value)} views`);
+    }
   }
 
   function updateCommentCount(postId) {
