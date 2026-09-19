@@ -876,14 +876,14 @@ modal.style.visibility = "visible";
   </div>
 
   ${
-    !isFollowing(author) &&
     String(author._id) !== String(state.meId)
       ? `
       <button
-        class="aift-reel-follow-btn"
+        class="aift-reel-follow-btn ${isFollowing(author) ? "is-following" : isFollowRequested(author) ? "is-requested" : ""}"
+        data-follow-user="${esc(author._id)}"
         onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
       >
-        Follow
+        ${isFollowing(author) ? "Following" : isFollowRequested(author) ? "Requested" : "Follow"}
       </button>
       `
       : ""
