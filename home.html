@@ -2202,7 +2202,7 @@ if(r === "school"){
 }
 
 </script>
-<script src="feed.js"></script>
+<script src="feed.js?v=20260919-mobile-publish-1"></script>
 
 <script>
 
@@ -2840,6 +2840,23 @@ function closeStartPostModal(){
   setStartPostNavigationHidden(false);
 }
 
+function openStartPostFromQuery(){
+  const params = new URLSearchParams(location.search);
+  if(params.get("compose") !== "1") return;
+
+  params.delete("compose");
+  const nextUrl = location.pathname + (params.toString() ? `?${params.toString()}` : "") + location.hash;
+  history.replaceState(history.state, "", nextUrl);
+
+  requestAnimationFrame(() => openStartPostModal());
+}
+
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", openStartPostFromQuery, { once:true });
+}else{
+  openStartPostFromQuery();
+}
+
 function previewStartPostMedia(){
   const input = document.getElementById("startPostMedia");
   const preview = document.getElementById("startPostPreview");
@@ -2940,8 +2957,13 @@ async function submitStartPost(){
       uploadedMedia = await AIFTFeed.uploadPostMediaDirect(files, percent => {
         const visiblePercent = Math.min(99, percent);
         if(uploadBar) uploadBar.style.width = visiblePercent + "%";
-        if(uploadText) uploadText.textContent = visiblePercent + "%";
-        btn.textContent = `Uploading ${visiblePercent}%`;
+        if(visiblePercent >= 99){
+          if(uploadText) uploadText.textContent = "Processing media...";
+          btn.textContent = "Processing media...";
+        }else{
+          if(uploadText) uploadText.textContent = visiblePercent + "%";
+          btn.textContent = `Uploading ${visiblePercent}%`;
+        }
       });
     }
 
@@ -2949,51 +2971,14 @@ async function submitStartPost(){
     if(uploadText && files.length) uploadText.textContent = "100%";
     btn.textContent = "Publishing...";
 
-    const payload = JSON.stringify({
+    if(uploadText && files.length){
+      uploadText.textContent = "Publishing...";
+    }
+
+    await AIFTFeed.publishUploadedPost({
       text,
       media: uploadedMedia
     });
-
-    let res = null;
-    let data = {};
-
-    for(let attempt = 1; attempt <= 2; attempt += 1){
-      try{
-        res = await fetch(API + "/api/posts/direct", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token()}`,
-            "Content-Type": "application/json"
-          },
-          body: payload
-        });
-
-        data = await res.json().catch(() => ({}));
-
-        if(res.ok){
-          break;
-        }
-
-        if(res.status < 500 || attempt >= 2){
-          throw new Error(data.message || `Post failed (${res.status})`);
-        }
-      }catch(error){
-        if(attempt >= 2){
-          throw error;
-        }
-
-        btn.textContent = "Finishing...";
-        if(uploadText && files.length){
-          uploadText.textContent = "Upload complete · finishing post";
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-    }
-
-    if(!res?.ok){
-      throw new Error(data.message || "Unable to finish publishing the post.");
-    }
 
     resetStartPostModal();
     closeStartPostModal();
@@ -3216,7 +3201,7 @@ body.start-post-open{
 }
 </style>
   <script src="shared-post-composer.js"></script>
-  <script src="shared-mobile-navigation.js?v=20260919-composer-lock-26"></script>
+  <script src="shared-mobile-navigation.js?v=20260919-composer-lock-27"></script>
   <script src="aift-nav-badges.js?v=20260906-no-empty-badges-2"></script>
 </body>
 </html>
