@@ -2202,7 +2202,7 @@ if(r === "school"){
 }
 
 </script>
-<script src="feed.js?v=20260919-r2-multipart-2"></script>
+<script src="feed.js?v=20260919-r2-multipart-3"></script>
 
 <script>
 
@@ -2951,6 +2951,16 @@ async function submitStartPost(){
   try{
     let uploadedMedia = [];
 
+    if(
+      files.some(file => AIFTFeed.getPostMediaType(file) === "video") &&
+      AIFTFeed.uploadBuild !== "20260919-r2-multipart-3"
+    ){
+      const refreshUrl = new URL(location.href);
+      refreshUrl.searchParams.set("uploader", "20260919-r2-multipart-3");
+      location.replace(refreshUrl.href);
+      return;
+    }
+
     if(files.length){
       uploadedMedia = await AIFTFeed.uploadPostMediaDirect(files, percent => {
         const visiblePercent = Math.min(99, percent);
@@ -3199,7 +3209,7 @@ body.start-post-open{
 }
 </style>
   <script src="shared-post-composer.js"></script>
-  <script src="shared-mobile-navigation.js?v=20260919-r2-multipart-28"></script>
+  <script src="shared-mobile-navigation.js?v=20260919-r2-multipart-29"></script>
   <script src="aift-nav-badges.js?v=20260906-no-empty-badges-2"></script>
 </body>
 </html>
