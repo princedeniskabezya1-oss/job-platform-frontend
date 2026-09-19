@@ -2727,6 +2727,20 @@ function openMobileComposer(event){
   openStartPostModal();
 }
 
+function setStartPostNavigationHidden(hidden){
+  const shouldHide = Boolean(hidden);
+
+  document.querySelector(".aift-mobile-nav")
+    ?.classList.toggle("aift-mobile-nav--dashboard-hidden", shouldHide);
+
+  if(window.parent !== window){
+    window.parent.postMessage({
+      type:"aift:dashboard-chrome",
+      hidden:shouldHide
+    }, location.origin);
+  }
+}
+
 function openStartPostModal(){
   let modal = document.getElementById("startPostModal");
 
@@ -2786,6 +2800,7 @@ function openStartPostModal(){
 
   modal.classList.add("show");
   document.body.classList.add("start-post-open");
+  setStartPostNavigationHidden(true);
 
   setTimeout(() => {
     document.getElementById("startPostText")?.focus();
@@ -2796,6 +2811,7 @@ function closeStartPostModal(){
   resetStartPostModal();
   document.getElementById("startPostModal")?.classList.remove("show");
   document.body.classList.remove("start-post-open");
+  setStartPostNavigationHidden(false);
 }
 
 function previewStartPostMedia(){
@@ -2896,9 +2912,10 @@ async function submitStartPost(){
 
     if(files.length){
       uploadedMedia = await AIFTFeed.uploadPostMediaDirect(files, percent => {
-        if(uploadBar) uploadBar.style.width = percent + "%";
-        if(uploadText) uploadText.textContent = percent + "%";
-        btn.textContent = percent >= 100 ? "Publishing..." : `Uploading ${percent}%`;
+        const visiblePercent = Math.min(99, percent);
+        if(uploadBar) uploadBar.style.width = visiblePercent + "%";
+        if(uploadText) uploadText.textContent = visiblePercent + "%";
+        btn.textContent = `Uploading ${visiblePercent}%`;
       });
     }
 
@@ -2906,22 +2923,50 @@ async function submitStartPost(){
     if(uploadText && files.length) uploadText.textContent = "100%";
     btn.textContent = "Publishing...";
 
-    const res = await fetch(API + "/api/posts", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token()}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        text,
-        media: uploadedMedia
-      })
+    const payload = JSON.stringify({
+      text,
+      media: uploadedMedia
     });
 
-    const data = await res.json().catch(() => ({}));
+    let res = null;
+    let data = {};
 
-    if(!res.ok){
-      throw new Error(data.message || "Post failed");
+    for(let attempt = 1; attempt <= 2; attempt += 1){
+      try{
+        res = await fetch(API + "/api/posts", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token()}`,
+            "Content-Type": "application/json"
+          },
+          body: payload
+        });
+
+        data = await res.json().catch(() => ({}));
+
+        if(res.ok){
+          break;
+        }
+
+        if(res.status < 500 || attempt >= 2){
+          throw new Error(data.message || `Post failed (${res.status})`);
+        }
+      }catch(error){
+        if(attempt >= 2){
+          throw error;
+        }
+
+        btn.textContent = "Finishing...";
+        if(uploadText && files.length){
+          uploadText.textContent = "Upload complete · finishing post";
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+    }
+
+    if(!res?.ok){
+      throw new Error(data.message || "Unable to finish publishing the post.");
     }
 
     resetStartPostModal();
