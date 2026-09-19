@@ -2273,11 +2273,36 @@ async function getPostMediaUploadSignature(type) {
   );
 }
 
-async function getR2VideoUploadUrl(file) {
-  const contentType = String(file?.type || "").toLowerCase();
+function getR2VideoContentType(file) {
+  const mime = String(file?.type || "").toLowerCase().split(";")[0].trim();
+  if (mime.startsWith("video/")) return mime;
 
-  if (!contentType.startsWith("video/")) {
-    throw new Error("This video format is missing a valid video MIME type.");
+  const name = String(file?.name || "").toLowerCase();
+  const extension = name.includes(".") ? name.split(".").pop() : "";
+  const byExtension = {
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    m4v: "video/x-m4v",
+    webm: "video/webm",
+    avi: "video/x-msvideo",
+    mkv: "video/x-matroska",
+    "3gp": "video/3gpp",
+    "3g2": "video/3gpp2",
+    mpeg: "video/mpeg",
+    mpg: "video/mpeg",
+    mts: "video/mp2t",
+    m2ts: "video/mp2t",
+    ts: "video/mp2t"
+  };
+
+  return byExtension[extension] || "";
+}
+
+async function getR2VideoUploadUrl(file) {
+  const contentType = getR2VideoContentType(file);
+
+  if (!contentType) {
+    throw new Error("This video format could not be identified for upload.");
   }
 
   return api(`${API}/api/posts/media-upload-r2-url`, {
