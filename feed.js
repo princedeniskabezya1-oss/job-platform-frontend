@@ -2378,6 +2378,194 @@ function uploadVideoDirectToR2(file, uploadData, onProgress) {
   });
 }
 
+async function postR2Multipart(endpoint, payload) {
+  return api(`${API}/api/posts/media-upload-r2-multipart/${endpoint}`, {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload || {})
+  });
+}
+
+function uploadR2PartRequest(blob, uploadUrl, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.timeout = 20 * 60 * 1000;
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) {
+        onProgress?.(event.loaded, event.total);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const etag = String(
+          xhr.getResponseHeader("ETag") ||
+          xhr.getResponseHeader("etag") ||
+          ""
+        ).trim();
+
+        if (!etag) {
+          const error = new Error("R2 uploaded a video part without returning its ETag.");
+          error.status = 502;
+          reject(error);
+          return;
+        }
+
+        onProgress?.(blob.size, blob.size);
+        resolve(etag);
+        return;
+      }
+
+      const error = new Error(`Video part upload failed (${xhr.status}).`);
+      error.status = xhr.status;
+      reject(error);
+    };
+
+    xhr.onerror = () => {
+      const error = new Error("The video part upload connection failed.");
+      error.status = 0;
+      reject(error);
+    };
+
+    xhr.ontimeout = () => {
+      const error = new Error("A video part took too long to upload.");
+      error.status = 408;
+      reject(error);
+    };
+
+    xhr.send(blob);
+  });
+}
+
+async function uploadLargeVideoDirectToR2(file, onProgress) {
+  const contentType = getR2VideoContentType(file);
+
+  if (!contentType) {
+    throw new Error("This video format could not be identified for upload.");
+  }
+
+  const session = await postR2Multipart("start", {
+    filename: file?.name || "video",
+    contentType,
+    size: Number(file?.size || 0)
+  });
+
+  const uploadId = String(session?.uploadId || "").trim();
+  const key = String(session?.key || "").trim();
+  const publicUrl = String(session?.publicUrl || "").trim();
+  const partSize = Math.max(
+    5 * 1024 * 1024,
+    Number(session?.partSize || 25 * 1024 * 1024)
+  );
+
+  if (!uploadId || !key || !publicUrl) {
+    throw new Error("R2 did not return a complete multipart upload session.");
+  }
+
+  const partCount = Math.ceil(file.size / partSize);
+  const loadedByPart = new Array(partCount).fill(0);
+  const completedParts = new Array(partCount);
+  let nextPartIndex = 0;
+
+  const report = () => {
+    const loaded = loadedByPart.reduce((sum, value) => sum + value, 0);
+    onProgress?.(Math.min(file.size, loaded), file.size);
+  };
+
+  const uploadPart = async index => {
+    const partNumber = index + 1;
+    const start = index * partSize;
+    const end = Math.min(file.size, start + partSize);
+    const blob = file.slice(start, end);
+
+    let attempt = 0;
+    let lastError = null;
+
+    while (attempt < 3) {
+      attempt += 1;
+
+      try {
+        const signed = await postR2Multipart("part-url", {
+          key,
+          uploadId,
+          partNumber
+        });
+
+        const etag = await uploadR2PartRequest(
+          blob,
+          String(signed?.uploadUrl || ""),
+          loaded => {
+            loadedByPart[index] = Math.max(0, Math.min(blob.size, loaded));
+            report();
+          }
+        );
+
+        loadedByPart[index] = blob.size;
+        completedParts[index] = { partNumber, etag };
+        report();
+        return;
+      } catch (error) {
+        lastError = error;
+        loadedByPart[index] = 0;
+        report();
+
+        const status = Number(error?.status || 0);
+        const retryable =
+          status === 0 ||
+          status === 408 ||
+          status === 429 ||
+          status >= 500;
+
+        if (!retryable || attempt >= 3) {
+          throw error;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+      }
+    }
+
+    throw lastError || new Error("Video part upload failed.");
+  };
+
+  try {
+    async function worker() {
+      while (nextPartIndex < partCount) {
+        const index = nextPartIndex++;
+        await uploadPart(index);
+      }
+    }
+
+    const workerCount = Math.min(2, partCount);
+    await Promise.all(
+      Array.from({ length: workerCount }, () => worker())
+    );
+
+    const complete = await postR2Multipart("complete", {
+      key,
+      uploadId,
+      parts: completedParts
+    });
+
+    const finalUrl = String(complete?.url || publicUrl).trim();
+    if (!finalUrl) {
+      throw new Error("R2 completed the video but did not return its media URL.");
+    }
+
+    onProgress?.(file.size, file.size);
+
+    return {
+      url: finalUrl,
+      type: "video"
+    };
+  } catch (error) {
+    postR2Multipart("abort", { key, uploadId }).catch(() => {});
+    throw error;
+  }
+}
+
 function cloudinaryUploadForm(filePart, fileName, signatureData) {
   const form = new FormData();
   form.append("file", filePart, fileName);
@@ -2596,20 +2784,30 @@ async function uploadPostMediaDirect(files, onProgress) {
 
         try{
           if (type === "video") {
-            const uploadData = await getR2VideoUploadUrl(file);
+            const videoProgress = loaded => {
+              // Keep the aggregate below 100 until R2 has either confirmed
+              // the single PUT or completed the multipart upload.
+              loadedByIndex[index] = Math.min(
+                Math.max(0, file.size - 1),
+                Math.max(0, loaded)
+              );
+              report();
+            };
 
-            results[index] = await uploadVideoDirectToR2(
-              file,
-              uploadData,
-              loaded => {
-                // Keep the aggregate below 100 until R2 confirms the PUT.
-                loadedByIndex[index] = Math.min(
-                  Math.max(0, file.size - 1),
-                  Math.max(0, loaded)
-                );
-                report();
-              }
-            );
+            if (file.size > 90 * 1024 * 1024) {
+              results[index] = await uploadLargeVideoDirectToR2(
+                file,
+                videoProgress
+              );
+            } else {
+              const uploadData = await getR2VideoUploadUrl(file);
+
+              results[index] = await uploadVideoDirectToR2(
+                file,
+                uploadData,
+                videoProgress
+              );
+            }
           } else {
             const signature = await getPostMediaUploadSignature(type);
 
