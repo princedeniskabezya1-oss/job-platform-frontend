@@ -229,6 +229,8 @@
     const mediaEl = document.getElementById("startPostMedia");
     const btn = document.getElementById("startPostSubmit");
     const uploadProgress = document.querySelector(".start-upload-progress");
+    const uploadBar = document.getElementById("startUploadBar");
+    const uploadText = document.getElementById("startUploadText");
 
     const text = textEl?.value.trim() || "";
     const files = Array.from(mediaEl?.files || []);
@@ -243,41 +245,70 @@
       return;
     }
 
-    const form = new FormData();
-    form.append("text", text);
+    if(!window.AIFTFeed?.uploadPostMediaDirect || !window.AIFTFeed?.publishUploadedPost){
+      const hasVideo = files.some(file =>
+        file.type?.startsWith("video/") ||
+        /\.(mp4|mov|m4v|webm|avi|mkv|3gp|3g2|mpeg|mpg|mts|m2ts|ts)$/i.test(file.name || "")
+      );
 
-    files.forEach(file => {
-      form.append("media", file);
-    });
+      if(hasVideo){
+        toast("The current video uploader is not loaded yet. Refresh AIFT and try again.");
+        return;
+      }
+    }
 
     try{
       btn.disabled = true;
-      btn.textContent = "Posting...";
+      btn.textContent = files.length ? "Uploading 0%" : "Publishing...";
 
       if(uploadProgress){
-        uploadProgress.style.display = "flex";
+        uploadProgress.style.display = files.length ? "flex" : "none";
       }
 
-      const res = await uploadPostWithProgress(form, percent => {
-        const bar = document.getElementById("startUploadBar");
-        const textEl = document.getElementById("startUploadText");
+      let uploadedMedia = [];
 
-        if(bar) bar.style.width = percent + "%";
-        if(textEl) textEl.textContent = percent + "%";
+      if(files.length){
+        if(!window.AIFTFeed?.uploadPostMediaDirect){
+          throw new Error("The media uploader is not available. Refresh AIFT and try again.");
+        }
+
+        uploadedMedia = await window.AIFTFeed.uploadPostMediaDirect(files, percent => {
+          const visiblePercent = Math.min(99, Math.max(0, Number(percent) || 0));
+
+          if(uploadBar) uploadBar.style.width = visiblePercent + "%";
+
+          if(visiblePercent >= 99){
+            if(uploadText) uploadText.textContent = "Finishing upload...";
+            btn.textContent = "Finishing upload...";
+          }else{
+            if(uploadText) uploadText.textContent = visiblePercent + "%";
+            btn.textContent = `Uploading ${visiblePercent}%`;
+          }
+        });
+      }
+
+      if(files.length){
+        if(uploadBar) uploadBar.style.width = "100%";
+        if(uploadText) uploadText.textContent = "Publishing...";
+      }
+
+      btn.textContent = "Publishing...";
+
+      if(!window.AIFTFeed?.publishUploadedPost){
+        throw new Error("The post publisher is not available. Refresh AIFT and try again.");
+      }
+
+      await window.AIFTFeed.publishUploadedPost({
+        text,
+        media: uploadedMedia
       });
-
-      const data = await res.json().catch(() => ({}));
-
-      if(!res.ok){
-        throw new Error(data.message || data.error || "Post failed");
-      }
 
       toast("Post created successfully.");
 
       resetStartPostModal();
       closeStartPostModal();
 
-      if(window.AIFTFeed && document.getElementById("feedMount")){
+      if(document.getElementById("feedMount")){
         await window.AIFTFeed.mount("feedMount", {
           mode: "home",
           showComposer: !isGuestUser(),
@@ -289,6 +320,11 @@
 
     }catch(err){
       console.error("Post failed:", err);
+
+      if(uploadText && files.length){
+        uploadText.textContent = "Upload failed";
+      }
+
       toast(err.message || "Unable to create post.");
     }finally{
       btn.disabled = false;
@@ -296,30 +332,4 @@
     }
   };
 
-  function uploadPostWithProgress(form, onProgress){
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.open("POST", getAPI() + "/api/posts");
-      xhr.setRequestHeader("Authorization", `Bearer ${getToken()}`);
-
-      xhr.upload.onprogress = event => {
-        if(event.lengthComputable){
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
-        }
-      };
-
-      xhr.onload = () => {
-        resolve({
-          ok: xhr.status >= 200 && xhr.status < 300,
-          status: xhr.status,
-          json: async () => JSON.parse(xhr.responseText || "{}")
-        });
-      };
-
-      xhr.onerror = () => reject(new Error("Upload failed"));
-      xhr.send(form);
-    });
-  }
 })();
