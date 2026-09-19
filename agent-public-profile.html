@@ -1960,6 +1960,27 @@ async function loadViewerFamilyStatus(){
   }
 }
 
+async function recordProfileView(){
+  if(!profileId || !token) return;
+
+  const viewerId = state.viewer?._id || localStorage.getItem("userId");
+  if(String(viewerId || "") === String(profileId)) return;
+
+  try{
+    const res = await fetch(`${API}/api/users/${encodeURIComponent(profileId)}/profile-view`, {
+      method:"PATCH",
+      headers:authHeaders()
+    });
+    const data = await res.json().catch(()=>({}));
+    if(res.ok && typeof data.profileViews !== "undefined"){
+      if(state.profile) state.profile.profileViews = data.profileViews;
+      if(state.stats) state.stats.profileViews = data.profileViews;
+    }
+  }catch(err){
+    console.warn("Profile view tracking failed:",err.message);
+  }
+}
+
 async function fetchProfile(){
   if(!profileId){
     throw new Error("Missing profile id");
@@ -2897,6 +2918,7 @@ async function init(){
     ]);
 
     if(!protectAgentProfile()) return;
+    await recordProfileView();
     renderProfile();
 
     loadPerformance().catch(err=>console.warn("Agent performance unavailable:",err.message));

@@ -5123,6 +5123,27 @@ const FALLBACK_LOGO =
    FETCH PROFILE
 ========================= */
 
+async function recordProfileView(){
+  if(!schoolId || !token) return;
+
+  const viewerId = state.viewer?._id || localStorage.getItem("userId");
+  if(String(viewerId || "") === String(schoolId)) return;
+
+  try{
+    const res = await fetch(`${API}/api/users/${encodeURIComponent(schoolId)}/profile-view`, {
+      method:"PATCH",
+      headers:authHeaders()
+    });
+    const data = await safeJson(res);
+
+    if(res.ok && typeof data?.profileViews !== "undefined" && state.school){
+      state.school.profileViews = data.profileViews;
+    }
+  }catch(err){
+    console.warn("School profile view tracking failed:",err.message);
+  }
+}
+
 async function fetchSchoolProfile(){
 
   if(!schoolId){
@@ -7641,6 +7662,8 @@ async function initPage(){
       fetchJobs(),
       fetchPartners()
     ]);
+
+    await recordProfileView();
 
     results.forEach((result, index) => {
 
