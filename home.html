@@ -2761,7 +2761,7 @@ function setStartPostNavigationHidden(hidden){
 
   if(window.parent !== window){
     window.parent.postMessage({
-      type:"aift:dashboard-chrome",
+      type:"aift:composer-chrome",
       hidden:shouldHide
     }, location.origin);
   }
@@ -2959,7 +2959,7 @@ async function submitStartPost(){
 
     for(let attempt = 1; attempt <= 2; attempt += 1){
       try{
-        res = await fetch(API + "/api/posts", {
+        res = await fetch(API + "/api/posts/direct", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token()}`,
@@ -3007,7 +3007,11 @@ async function submitStartPost(){
     });
 
   }catch(err){
-    alert(err.message || "Unable to create post.");
+    console.error("Mobile post publish failed:", err);
+    if(uploadText && files.length){
+      uploadText.textContent = "Upload complete · publish failed";
+    }
+    alert(err.message || "Unable to finish publishing the post.");
   }finally{
     btn.disabled = false;
     btn.textContent = "Post";
