@@ -68,7 +68,15 @@
   function installCanonicalNavigation(){
     const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
-    if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
+
+    if(file==="home.html"){
+      candidates.forEach(item=>item.remove());
+      document.body.classList.remove("aift-mobile-nav-page");
+      document.body.style.removeProperty("padding-bottom");
+      return;
+    }
+
+    if(!candidates.length&&!new Set(["network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
     const nav=document.querySelector(".aift-mobile-nav")||candidates[0]||document.body.appendChild(document.createElement("nav"));
     candidates.filter(item=>item!==nav).forEach(item=>item.remove());
     document.querySelectorAll(".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer").forEach(item=>item.remove());
@@ -500,7 +508,9 @@
       return;
     }
     installCanonicalNavigation();
-    document.body.classList.add("aift-mobile-nav-page");
+    if(initialFile!=="home.html"){
+      document.body.classList.add("aift-mobile-nav-page");
+    }
     matchDeviceBottomSurface();
     setMobileAvatar();
     updateActiveMobileNav();
