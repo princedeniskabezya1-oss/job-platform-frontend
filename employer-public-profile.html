@@ -2025,6 +2025,29 @@ function toast(title,message,type=""){
    LOAD DATA
 ========================= */
 
+async function recordProfileView(){
+  if(!state.companyId || !token()) return;
+
+  const viewerId = currentUserId();
+  if(String(viewerId || "") === String(state.companyId)) return;
+
+  try{
+    const data = await api(`/api/users/${encodeURIComponent(state.companyId)}/profile-view`, {
+      method:"PATCH",
+      headers:headers()
+    });
+
+    if(state.company && typeof data.profileViews !== "undefined"){
+      state.company.profileViews = data.profileViews;
+    }
+    if(state.publicStats && typeof data.profileViews !== "undefined"){
+      state.publicStats.profileViews = data.profileViews;
+    }
+  }catch(err){
+    console.warn("Profile view tracking failed:",err.message);
+  }
+}
+
 async function loadCompany(){
 
   if(!state.companyId){
@@ -3412,6 +3435,7 @@ socket.on("connect",()=>{
 async function init(){
   try{
     await loadCompany();
+    await recordProfileView();
     await loadViewerFamilyStatus();
 
     document.body.classList.add("loaded");
