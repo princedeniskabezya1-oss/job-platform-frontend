@@ -252,6 +252,17 @@ function saveHiddenComment(commentId){
     return following.some(id => String(id) === String(author._id));
   }
 
+  function isFollowRequested(author = {}) {
+    const myId = String(state.meId || localStorage.getItem("userId") || "");
+    if (!author || !author._id || String(author._id) === myId) return false;
+
+    if (typeof author.followRequested === "boolean") return author.followRequested;
+
+    return (state.me?.followRequestsSent || []).some(
+      id => String(id?._id || id) === String(author._id)
+    );
+  }
+
   async function api(url, options = {}) {
     const res = await fetch(url, options);
     let data = null;
