@@ -392,7 +392,7 @@
   function openPage(page){
     state.page = page;
     document.body.classList.toggle("family-chat-active",page === "messages");
-    $(".family-page").forEach(section => section.classList.remove("active"));
+    $$(".family-page").forEach(section => section.classList.remove("active"));
     document.getElementById(`familyPage-${page}`)?.classList.add("active");
     $$(".family-nav-button").forEach(button => {
       button.classList.toggle("active",button.dataset.page === page);
