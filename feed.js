@@ -2483,6 +2483,46 @@ async function uploadPostMediaDirect(files, onProgress) {
   return results;
 }
 
+async function publishUploadedPost({ text = "", media = [] } = {}) {
+  const payload = JSON.stringify({
+    text: String(text || "").trim(),
+    media: Array.isArray(media) ? media : []
+  });
+
+  async function request(endpoint) {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: payload
+    });
+
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {}
+
+    if (!res.ok) {
+      const error = new Error(
+        data?.message || data?.msg || `Post publish failed (${res.status}).`
+      );
+      error.status = res.status;
+      throw error;
+    }
+
+    return data;
+  }
+
+  try {
+    return await request(`${API}/api/posts/direct`);
+  } catch (error) {
+    // Compatibility fallback is only safe when the dedicated route does not exist.
+    // Never retry a 5xx/network failure because the server may already have created
+    // the post and a blind retry could create a duplicate.
+    if (![404, 405].includes(Number(error?.status))) throw error;
+    return request(`${API}/api/posts`);
+  }
+}
+
 async function createPost() {
   if(!requireMember("create posts")) return;
 
@@ -2554,13 +2594,9 @@ async function createPost() {
       setComposerUploadProgress(100, "Publishing post...");
       if (postBtn) postBtn.textContent = "Publishing...";
 
-      response = await api(endpoint, {
-        method: "POST",
-        headers: headers({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          text,
-          media: uploadedMedia
-        })
+      response = await publishUploadedPost({
+        text,
+        media: uploadedMedia
       });
     } else {
       response = await api(endpoint, {
@@ -4465,6 +4501,7 @@ function closeOverlays(clear = true) {
     loadMore,
     createPost,
     uploadPostMediaDirect,
+    publishUploadedPost,
     previewComposerMedia,
     renderVideoPreview,
     togglePreviewVideo,
