@@ -707,6 +707,16 @@ function observeFeedVideos(){
 
   if(state.videoObserver){
     state.videoObserver.disconnect();
+    state.videoObserver = null;
+  }
+
+  if(!("IntersectionObserver" in window)){
+    videos.forEach(video => {
+      try{ video.pause(); }catch{}
+      video.muted = true;
+    });
+    updateSoundBadges();
+    return;
   }
 
   state.videoObserver = new IntersectionObserver(entries => {
@@ -1715,7 +1725,25 @@ function observeInfiniteScroll(){
 
   if(infiniteObserver){
     infiniteObserver.disconnect();
+    infiniteObserver = null;
   }
+
+  if(!("IntersectionObserver" in window)){
+    sentinel.innerHTML = state.hasMore
+      ? '<button type="button" class="aift-load-more-fallback">Load more</button>'
+      : "";
+    sentinel.style.display = state.hasMore ? "flex" : "none";
+
+    const button = sentinel.querySelector(".aift-load-more-fallback");
+    if(button){
+      button.onclick = () => {
+        if(!state.loading && state.hasMore) loadFeed();
+      };
+    }
+    return;
+  }
+
+  sentinel.innerHTML = "";
 
   infiniteObserver = new IntersectionObserver(entries => {
     const entry = entries[0];
