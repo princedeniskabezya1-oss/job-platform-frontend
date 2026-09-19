@@ -2293,19 +2293,25 @@ function uploadCloudinaryRequest({
         return;
       }
 
-      reject(
-        new Error(
-          data?.error?.message ||
-          `Media upload failed (${xhr.status}).`
-        )
+      const error = new Error(
+        data?.error?.message ||
+        `Media upload failed (${xhr.status}).`
       );
+      error.status = xhr.status;
+      reject(error);
     };
 
-    xhr.onerror = () =>
-      reject(new Error("The media upload connection failed. Please check your connection and try again."));
+    xhr.onerror = () => {
+      const error = new Error("The media upload connection failed. Retrying may help on mobile networks.");
+      error.status = 0;
+      reject(error);
+    };
 
-    xhr.ontimeout = () =>
-      reject(new Error("The media upload took too long. Please try again on a stable connection."));
+    xhr.ontimeout = () => {
+      const error = new Error("The media upload took too long to finish.");
+      error.status = 408;
+      reject(error);
+    };
 
     xhr.send(form);
   });
@@ -2415,19 +2421,57 @@ async function uploadPostMediaDirect(files, onProgress) {
       const index = nextIndex++;
       const file = files[index];
       const type = file.type?.startsWith("video/") ? "video" : "image";
-      const signature = await getPostMediaUploadSignature(type);
 
-      results[index] = await uploadFileDirectToCloudinary(
-        file,
-        signature,
-        loaded => {
-          loadedByIndex[index] = Math.min(file.size, loaded);
+      let attempt = 0;
+      let lastError = null;
+
+      while(attempt < 2){
+        attempt += 1;
+
+        try{
+          const signature = await getPostMediaUploadSignature(type);
+
+          results[index] = await uploadFileDirectToCloudinary(
+            file,
+            signature,
+            loaded => {
+              // Sending the final byte is not the same as Cloudinary
+              // finishing the upload. Keep the visible total below 100
+              // until a secure delivery URL has actually been returned.
+              loadedByIndex[index] = Math.min(
+                Math.max(0, file.size - 1),
+                Math.max(0, loaded)
+              );
+              report();
+            }
+          );
+
+          loadedByIndex[index] = file.size;
           report();
-        }
-      );
+          lastError = null;
+          break;
+        }catch(error){
+          lastError = error;
+          const status = Number(error?.status || 0);
+          const retryable =
+            status === 0 ||
+            status === 408 ||
+            status === 429 ||
+            status >= 500;
 
-      loadedByIndex[index] = file.size;
-      report();
+          if(!retryable || attempt >= 2){
+            throw error;
+          }
+
+          loadedByIndex[index] = 0;
+          report();
+          await new Promise(resolve => setTimeout(resolve, 700));
+        }
+      }
+
+      if(lastError){
+        throw lastError;
+      }
     }
   }
 
