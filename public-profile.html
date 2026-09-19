@@ -1877,6 +1877,26 @@ function dashboardDestination(role){
   return "profile.html";
 }
 
+async function recordProfileView(){
+  if(!profileId || !getToken()) return;
+
+  const viewerId = state.viewer?._id || localStorage.getItem("userId");
+  if(String(viewerId || "") === String(profileId)) return;
+
+  try{
+    const data = await fetchJSON(`/api/users/${encodeURIComponent(profileId)}/profile-view`, {
+      method:"PATCH",
+      headers:authHeaders()
+    });
+
+    if(state.profile && typeof data.profileViews !== "undefined"){
+      state.profile.profileViews = data.profileViews;
+    }
+  }catch(err){
+    console.warn("Profile view tracking failed:", err.message);
+  }
+}
+
 async function loadProfile(){
   if(!profileId){
     showState("Profile unavailable","Missing profile ID.");
@@ -2606,6 +2626,7 @@ async function init(){
     loadViewerFamilyStatus()
   ]);
   await loadProfile();
+  await recordProfileView();
 }
 
 init();
