@@ -44,39 +44,32 @@
   function canonicalNavigationMarkup(){
     return `
       <a href="home.html" aria-label="Home">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.3 2.4 10.2a1.1 1.1 0 0 0-.4.85v9.15c0 .99.81 1.8 1.8 1.8h5.1v-7.1h6.2V22h5.1c.99 0 1.8-.81 1.8-1.8v-9.15c0-.33-.15-.64-.4-.85L12 2.3Z"></path></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
         <span>Home</span>
       </a>
-      <a href="jobs.html" aria-label="Jobs">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M8.4 4.1c0-1.16.94-2.1 2.1-2.1h3c1.16 0 2.1.94 2.1 2.1V6h3.6A2.8 2.8 0 0 1 22 8.8v2.55a25.5 25.5 0 0 1-8.7 1.61v-.86a1.3 1.3 0 0 0-2.6 0v.86A25.5 25.5 0 0 1 2 11.35V8.8A2.8 2.8 0 0 1 4.8 6h3.6V4.1Zm2.1 0V6h3V4.1h-3ZM2 13.57V19.2A2.8 2.8 0 0 0 4.8 22h14.4a2.8 2.8 0 0 0 2.8-2.8v-5.63a28 28 0 0 1-8.7 1.49v.84a1.3 1.3 0 0 1-2.6 0v-.84A28 28 0 0 1 2 13.57Z" clip-rule="evenodd"></path></svg>
-        <span>Jobs</span>
-      </a>
       <a href="network.html" aria-label="Network">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 11.1a4.55 4.55 0 1 0 0-9.1 4.55 4.55 0 0 0 0 9.1ZM1 20.25C1 15.94 4.21 13 8.2 13s7.2 2.94 7.2 7.25c0 .97-.78 1.75-1.75 1.75H2.75C1.78 22 1 21.22 1 20.25ZM17.4 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-.79 2.06c.51-.12 1.04-.18 1.59-.18 3.2 0 5.8 2.34 5.8 5.77 0 .78-.63 1.42-1.42 1.42h-5.1c.02-.2.02-.4.02-.61 0-2.5-.93-4.68-2.49-6.28.51-.07 1.04-.12 1.6-.12Z"></path></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><path d="M20 8v6"></path><path d="M23 11h-6"></path></svg>
         <span>Network</span>
       </a>
-      <a href="messages.html" aria-label="Messages">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C5.92 2 1 6.25 1 11.5c0 2.96 1.58 5.61 4.05 7.35L4.1 22l3.76-1.64c1.29.42 2.68.64 4.14.64 6.08 0 11-4.25 11-9.5S18.08 2 12 2Zm-5 8.15h10a1.1 1.1 0 1 1 0 2.2H7a1.1 1.1 0 1 1 0-2.2Zm0-3.6h7a1.1 1.1 0 1 1 0 2.2H7a1.1 1.1 0 1 1 0-2.2Zm0 7.2h6a1.1 1.1 0 1 1 0 2.2H7a1.1 1.1 0 1 1 0-2.2Z"></path></svg>
-        <span>Messages</span>
+      <button type="button" class="mobile-create aift-mobile-nav__start-post" onclick="openMobileComposer(event)" aria-label="Create post">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+        <span>Post</span>
+      </button>
+      <a href="jobs.html" aria-label="Jobs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        <span>Jobs</span>
       </a>
-      <button type="button" class="aift-mobile-nav__start-post" onclick="openMobileComposer(event)" aria-label="Start a post">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3H5Zm7 4.25c.69 0 1.25.56 1.25 1.25v3.25h3.25a1.25 1.25 0 1 1 0 2.5h-3.25v3.25a1.25 1.25 0 1 1-2.5 0v-3.25H7.5a1.25 1.25 0 1 1 0-2.5h3.25V7.5c0-.69.56-1.25 1.25-1.25Z" clip-rule="evenodd"></path></svg>
-        <span>Start a post</span>
-      </button>`;
+      <a href="messages.html" aria-label="Messages">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>Messages</span>
+      </a>`;
   }
 
   function installCanonicalNavigation(){
     const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
 
-    if(file==="home.html"){
-      candidates.forEach(item=>item.remove());
-      document.body.classList.remove("aift-mobile-nav-page");
-      document.body.style.removeProperty("padding-bottom");
-      return;
-    }
-
-    if(!candidates.length&&!new Set(["network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
+    if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
     const nav=document.querySelector(".aift-mobile-nav")||candidates[0]||document.body.appendChild(document.createElement("nav"));
     candidates.filter(item=>item!==nav).forEach(item=>item.remove());
     document.querySelectorAll(".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer").forEach(item=>item.remove());
@@ -508,9 +501,7 @@
       return;
     }
     installCanonicalNavigation();
-    if(initialFile!=="home.html"){
-      document.body.classList.add("aift-mobile-nav-page");
-    }
+    document.body.classList.add("aift-mobile-nav-page");
     matchDeviceBottomSurface();
     setMobileAvatar();
     updateActiveMobileNav();
