@@ -391,7 +391,8 @@
 
   function openPage(page){
     state.page = page;
-    $$(".family-page").forEach(section => section.classList.remove("active"));
+    document.body.classList.toggle("family-chat-active",page === "messages");
+    $(".family-page").forEach(section => section.classList.remove("active"));
     document.getElementById(`familyPage-${page}`)?.classList.add("active");
     $$(".family-nav-button").forEach(button => {
       button.classList.toggle("active",button.dataset.page === page);
@@ -1816,6 +1817,7 @@
 
   async function initialize(){
     bindEvents();
+    document.body.classList.toggle("family-chat-active",state.page === "messages");
 
     if(!token()){
       setHtml("#familyOverviewChildren",`<div class="family-error">Please sign in to your AIFT Family account to continue.</div>`);
