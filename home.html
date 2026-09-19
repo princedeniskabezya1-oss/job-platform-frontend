@@ -1511,6 +1511,31 @@ async function api(path,options={}){
    USER
 ========================= */
 
+let homeMetricsSocket = null;
+
+function connectHomeMetricsSocket(){
+  if(isGuest() || typeof io === "undefined" || homeMetricsSocket) return;
+
+  homeMetricsSocket = io(API, {
+    transports:["websocket","polling"],
+    auth:{ token:token() }
+  });
+
+  homeMetricsSocket.on("profile_viewed", payload => {
+    if(!state.me || String(payload?.profileId || "") !== String(state.me._id || "")) return;
+    state.me.profileViews = Number(payload.profileViews || 0);
+    const el = document.getElementById("viewerCount");
+    if(el) el.textContent = String(state.me.profileViews);
+  });
+
+  homeMetricsSocket.on("post_impression_updated", payload => {
+    if(!state.me) return;
+    state.me.postImpressions = Number(state.me.postImpressions || 0) + Number(payload?.postImpressionsDelta || 0);
+    const el = document.getElementById("impressionCount");
+    if(el) el.textContent = String(state.me.postImpressions);
+  });
+}
+
 async function loadMe(){
 
   if(!token()){
@@ -2437,6 +2462,7 @@ async function init(){
   try{
 
     await loadMe();
+    connectHomeMetricsSocket();
 
 await Promise.allSettled([
   loadSuggestions(),
