@@ -4876,6 +4876,7 @@ function closeOverlays(clear = true) {
   }
 
   return {
+    uploadBuild: "20260919-r2-multipart-3",
     mount,
     loadMore,
     createPost,
