@@ -1,4 +1,4 @@
-/* shared-post-composer.js */
+/* shared-post-composer.js — canonical direct-media uploader build 20260919-r2-canonical-2 */
 
 (function(){
   let startPostFiles = [];
