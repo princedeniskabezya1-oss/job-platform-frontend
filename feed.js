@@ -1886,6 +1886,7 @@ function renderOriginalPostCard(original) {
   const author = original.author || {};
   const verified = isVerified(author);
   const followed = isFollowing(author);
+  const requested = isFollowRequested(author);
   const textData = shortText(original.text || "");
 
   return `
@@ -1917,11 +1918,12 @@ function renderOriginalPostCard(original) {
           !state.guestMode && !followed
             ? `
               <button
-                class="aift-follow-btn aift-repost-clean-follow"
+                class="aift-follow-btn aift-repost-clean-follow ${requested ? "is-requested" : ""}"
+                data-follow-user="${esc(author._id)}"
                 onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
               >
-                <span class="aift-follow-plus">+</span>
-                <span>Follow</span>
+                ${requested ? "" : '<span class="aift-follow-plus">+</span>'}
+                <span>${requested ? "Requested" : "Follow"}</span>
               </button>
             `
             : ""
@@ -1992,6 +1994,7 @@ function shortText(text = ""){
     const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
     const commentsCount = countComments(post);
     const followed = isFollowing(author);
+    const requested = isFollowRequested(author);
     const verified = isVerified(author);
     const canManage = !state.guestMode && (isMine(author._id) || isAdmin());
     const textData = shortText(post.text || "");
@@ -2023,12 +2026,13 @@ function shortText(text = ""){
 ${
   !state.guestMode && !followed
     ? `<button
-        class="aift-follow-btn"
+        class="aift-follow-btn ${requested ? "is-requested" : ""}"
         id="aift-follow-${safeId(author._id)}"
+        data-follow-user="${esc(author._id)}"
         onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
       >
-        <span class="aift-follow-plus">+</span>
-        <span>Follow</span>
+        ${requested ? "" : '<span class="aift-follow-plus">+</span>'}
+        <span>${requested ? "Requested" : "Follow"}</span>
       </button>`
     : ""
 }
