@@ -2202,7 +2202,7 @@ if(r === "school"){
 }
 
 </script>
-<script src="feed.js?v=20260919-mobile-publish-1"></script>
+<script src="feed.js?v=20260919-mobile-video-type-2"></script>
 
 <script>
 
@@ -2871,7 +2871,7 @@ function previewStartPostMedia(){
       <div class="start-preview-item">
         <button type="button" onclick="removeStartPostMedia(${index})">×</button>
         ${
-          file.type.startsWith("video/")
+          AIFTFeed.getPostMediaType(file) === "video"
             ? AIFTFeed.renderVideoPreview(url)
             : `<img src="${url}" alt="">`
         }
@@ -2926,9 +2926,7 @@ async function submitStartPost(){
     return;
   }
 
-  const unsupported = files.find(file =>
-    !(file.type?.startsWith("image/") || file.type?.startsWith("video/"))
-  );
+  const unsupported = files.find(file => !AIFTFeed.getPostMediaType(file));
 
   if(unsupported){
     alert(`${unsupported.name} is not recognized as an image or video.`);
