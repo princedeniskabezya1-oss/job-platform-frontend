@@ -3933,13 +3933,13 @@ async function toggleFollow(userId) {
   if(!requireMember("follow people")) return;
   if (!userId || isMine(userId)) return;
 
-  const btn = document.getElementById(`aift-follow-${safeId(userId)}`);
+  const selector = `[data-follow-user="${CSS.escape(String(userId))}"]`;
+  const buttons = Array.from(document.querySelectorAll(selector));
 
-  if (btn) {
+  buttons.forEach(btn => {
     btn.disabled = true;
     btn.classList.add("is-loading");
-    btn.innerHTML = `<span class="aift-follow-loader"></span><span>Following</span>`;
-  }
+  });
 
   try {
     const data = await api(`${API}/api/users/${userId}/follow`, {
@@ -3947,45 +3947,57 @@ async function toggleFollow(userId) {
       headers: headers()
     });
 
-    const isNowFollowing =
-      data.following === true ||
-      data.isFollowing === true ||
-      data.status === "followed";
+    const isNowFollowing = data.following === true;
+    const isRequested = data.requested === true || data.status === "requested";
 
     const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
-
-    const next = isNowFollowing
+    const nextFollowing = isNowFollowing
       ? Array.from(new Set([...following, userId]))
       : following.filter(id => String(id) !== String(userId));
 
-    localStorage.setItem("followingIds", JSON.stringify(next));
+    localStorage.setItem("followingIds", JSON.stringify(nextFollowing));
+
+    if(state.me){
+      const requests = (state.me.followRequestsSent || []).map(id => String(id?._id || id));
+      state.me.followRequestsSent = isRequested
+        ? Array.from(new Set([...requests, String(userId)]))
+        : requests.filter(id => String(id) !== String(userId));
+
+      const meFollowing = (state.me.following || []).map(id => String(id?._id || id));
+      state.me.following = isNowFollowing
+        ? Array.from(new Set([...meFollowing, String(userId)]))
+        : meFollowing.filter(id => String(id) !== String(userId));
+    }
 
     state.posts.forEach(post => {
       if (String(post.author?._id) === String(userId)) {
         post.author.isFollowing = isNowFollowing;
+        post.author.followRequested = isRequested;
       }
     });
 
-    if (btn && isNowFollowing) {
-      btn.classList.remove("is-loading");
-      btn.classList.add("is-followed");
-      btn.innerHTML = `<span class="aift-follow-check">${svg("check")}</span><span>Following</span>`;
+    document.querySelectorAll(`.aift-reel-follow-btn[data-follow-user="${CSS.escape(String(userId))}"]`).forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("is-loading", "is-requested", "is-following");
+      btn.classList.toggle("is-requested", isRequested);
+      btn.classList.toggle("is-following", isNowFollowing);
+      btn.textContent = isNowFollowing ? "Following" : isRequested ? "Requested" : "Follow";
+    });
 
-      setTimeout(() => {
-        renderFeedOnly();
-      }, 900);
-    } else {
-      renderFeedOnly();
+    renderFeedOnly();
+
+    if(data.status === "requested"){
+      toast("Follow request sent.");
+    }else if(data.status === "request_cancelled"){
+      toast("Follow request cancelled.");
+    }else if(data.status === "unfollowed"){
+      toast("You unfollowed this profile.");
     }
-
-    toast(isNowFollowing ? "You are now following this profile." : "You unfollowed this profile.");
   } catch (err) {
-    if (btn) {
+    buttons.forEach(btn => {
       btn.disabled = false;
       btn.classList.remove("is-loading");
-      btn.innerHTML = `<span class="aift-follow-plus">+</span><span>Follow</span>`;
-    }
-
+    });
     toast(err.message, "error");
   }
 }
@@ -4231,11 +4243,31 @@ function closeOverlays(clear = true) {
       });
 
       state.socket.on("user_follow_updated", payload => {
+        if(state.me && payload.targetId){
+          const requests = (state.me.followRequestsSent || []).map(id => String(id?._id || id));
+          state.me.followRequestsSent = payload.requested
+            ? Array.from(new Set([...requests, String(payload.targetId)]))
+            : requests.filter(id => String(id) !== String(payload.targetId));
+
+          const following = (state.me.following || []).map(id => String(id?._id || id));
+          state.me.following = payload.following
+            ? Array.from(new Set([...following, String(payload.targetId)]))
+            : following.filter(id => String(id) !== String(payload.targetId));
+        }
+
         state.posts.forEach(post => {
           if (String(post.author?._id) === String(payload.targetId)) {
-            post.author.isFollowing = payload.following;
+            post.author.isFollowing = payload.following === true;
+            post.author.followRequested = payload.requested === true;
           }
         });
+
+        document.querySelectorAll(`.aift-reel-follow-btn[data-follow-user="${CSS.escape(String(payload.targetId || ""))}"]`).forEach(btn => {
+          btn.classList.toggle("is-following", payload.following === true);
+          btn.classList.toggle("is-requested", payload.requested === true);
+          btn.textContent = payload.following ? "Following" : payload.requested ? "Requested" : "Follow";
+        });
+
         renderFeedOnly();
       });
     } catch (err) {
