@@ -168,7 +168,7 @@
     const section=new Set(["home","network","jobs","notifications"]).has(requested)?requested:"home";
     const target=new URL(`${section}.html`,location.href);
     if(section==="home"){
-      target.searchParams.set("v","20260919-r2-multipart-2");
+      target.searchParams.set("v","20260919-r2-multipart-3");
       if(params.get("compose")==="1")target.searchParams.set("compose","1");
     }
     return target;
@@ -267,7 +267,7 @@
     wait.hidden=false;
     const target=new URL(url.href);
     target.searchParams.set("aiftSection","1");
-    if(file==="home.html")target.searchParams.set("v","20260919-r2-multipart-2");
+    if(file==="home.html")target.searchParams.set("v","20260919-r2-multipart-3");
     frame.addEventListener("load",()=>requestAnimationFrame(()=>{
       activateSectionFrame(frame);
       syncFrameNavigation(frame);
