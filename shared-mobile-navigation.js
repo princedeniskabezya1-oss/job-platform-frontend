@@ -480,6 +480,9 @@
     }
 
     if(initialFile==="mobile-shell.html"){
+      composerChromeHidden = true;
+      setDashboardNavigationHidden(true);
+
       const homeFrame = Array.from(document.querySelectorAll(".aift-section-view.is-current"))
         .find(frame => {
           try{
