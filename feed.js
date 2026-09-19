@@ -2259,6 +2259,26 @@ function cloudinaryUploadEndpoint(signatureData, resourceType) {
   return `https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/${resourceType}/upload`;
 }
 
+function getPostMediaType(file) {
+  const mime = String(file?.type || "").toLowerCase();
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("image/")) return "image";
+
+  const name = String(file?.name || "").toLowerCase();
+  const extension = name.includes(".") ? name.split(".").pop() : "";
+
+  const videoExtensions = new Set([
+    "mp4","mov","m4v","webm","avi","mkv","3gp","3g2","mpeg","mpg","mts","m2ts","ts"
+  ]);
+  const imageExtensions = new Set([
+    "jpg","jpeg","png","gif","webp","heic","heif","bmp","tif","tiff","avif"
+  ]);
+
+  if (videoExtensions.has(extension)) return "video";
+  if (imageExtensions.has(extension)) return "image";
+  return null;
+}
+
 function uploadCloudinaryRequest({
   endpoint,
   form,
@@ -2293,11 +2313,17 @@ function uploadCloudinaryRequest({
         return;
       }
 
-      const error = new Error(
+      const cloudinaryError =
         data?.error?.message ||
+        xhr.getResponseHeader("X-Cld-Error") ||
+        xhr.getResponseHeader("x-cld-error");
+
+      const error = new Error(
+        cloudinaryError ||
         `Media upload failed (${xhr.status}).`
       );
       error.status = xhr.status;
+      error.cloudinary = Boolean(cloudinaryError);
       reject(error);
     };
 
@@ -2366,8 +2392,11 @@ async function uploadLargeFileDirectToCloudinary(
 }
 
 async function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
-  const resourceType =
-    file.type?.startsWith("video/") ? "video" : "image";
+  const resourceType = getPostMediaType(file);
+
+  if (!resourceType) {
+    throw new Error(`${file?.name || "This file"} is not recognized as a supported image or video.`);
+  }
 
   /*
     Cloudinary requires chunked Upload API calls above 100 MB.
@@ -2420,7 +2449,11 @@ async function uploadPostMediaDirect(files, onProgress) {
     while (nextIndex < files.length) {
       const index = nextIndex++;
       const file = files[index];
-      const type = file.type?.startsWith("video/") ? "video" : "image";
+      const type = getPostMediaType(file);
+
+      if (!type) {
+        throw new Error(`${file?.name || "This file"} is not recognized as a supported image or video.`);
+      }
 
       let attempt = 0;
       let lastError = null;
@@ -2539,9 +2572,7 @@ async function createPost() {
     return;
   }
 
-  const unsupported = files.find(file =>
-    !(file.type?.startsWith("image/") || file.type?.startsWith("video/"))
-  );
+  const unsupported = files.find(file => !getPostMediaType(file));
 
   if(unsupported){
     toast(`${unsupported.name} is not recognized as an image or video.`, "error");
@@ -4502,6 +4533,7 @@ function closeOverlays(clear = true) {
     createPost,
     uploadPostMediaDirect,
     publishUploadedPost,
+    getPostMediaType,
     previewComposerMedia,
     renderVideoPreview,
     togglePreviewVideo,
