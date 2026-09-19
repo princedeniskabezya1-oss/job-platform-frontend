@@ -14010,6 +14010,9 @@ and
         showVenturePage();
 
 
+        loadVentureContributors();
+
+
         /*
           View tracking is deliberately called only after
           the public venture has loaded successfully.
@@ -16552,6 +16555,278 @@ and
 
 
     /* =====================================================
+       CONTRIBUTIONS
+    ====================================================== */
+
+    function startVentureContribution(presetAmount){
+      const input =
+        ventureElement("ventureContributionAmount");
+
+      const amount =
+        Number(
+          presetAmount ??
+          input?.value ??
+          0
+        );
+
+      if(
+        !Number.isFinite(amount) ||
+        amount < 1
+      ){
+        input?.focus();
+
+        showVentureNotification(
+          "Enter a contribution amount of at least 1.",
+          {
+            title:"Choose an amount",
+            type:"warning"
+          }
+        );
+
+        return;
+      }
+
+      const ventureId =
+        ventureState.ventureId ||
+        new URLSearchParams(
+          window.location.search
+        ).get("id") ||
+        "";
+
+      if(!ventureId){
+        notifyVentureError(
+          "AIFT could not identify this venture.",
+          "Contribution unavailable"
+        );
+        return;
+      }
+
+      if(
+        !ventureRequireLogin(
+          "Sign in to contribute securely to this venture."
+        )
+      ){
+        return;
+      }
+
+      const publicName =
+        ventureElement(
+          "ventureContributionPublicName"
+        )?.checked !== false;
+
+      const checkout =
+        new URL(
+          "checkout.html",
+          window.location.href
+        );
+
+      checkout.searchParams.set(
+        "type",
+        "venture_contribution"
+      );
+
+      checkout.searchParams.set(
+        "id",
+        ventureId
+      );
+
+      checkout.searchParams.set(
+        "amount",
+        amount.toFixed(2)
+      );
+
+      if(!publicName){
+        checkout.searchParams.set(
+          "anonymous",
+          "1"
+        );
+      }
+
+      window.location.href =
+        checkout.href;
+    }
+
+
+    function ventureContributorInitials(name){
+      return ventureSafeString(
+        name,
+        "AIFT Supporter"
+      )
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0,2)
+        .map(part => part[0]?.toUpperCase() || "")
+        .join("") ||
+        "A";
+    }
+
+
+    function renderVentureContributors(data){
+      const list =
+        ventureElement(
+          "ventureContributorList"
+        );
+
+      const count =
+        ventureElement(
+          "ventureContributorCount"
+        );
+
+      const contributors =
+        Array.isArray(
+          data?.contributors
+        )
+          ? data.contributors
+          : [];
+
+      if(count){
+        count.textContent =
+          ventureFormatNumber(
+            Number(
+              data?.count ??
+              contributors.length
+            )
+          );
+      }
+
+      if(!list){
+        return;
+      }
+
+      if(!contributors.length){
+        list.innerHTML = `
+          <div class="venture-empty-state">
+            <strong>No contributions yet</strong>
+            <p>Be the first person to support this venture.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML =
+        contributors
+          .map(
+            contributor => {
+
+              const name =
+                ventureSafeString(
+                  contributor?.displayName,
+                  contributor?.anonymous
+                    ? "Anonymous"
+                    : "AIFT Supporter"
+                );
+
+              const image =
+                contributor?.anonymous
+                  ? ""
+                  : ventureSafeUrl(
+                      contributor?.profileImage
+                    );
+
+              const amount =
+                ventureFormatCurrency(
+                  contributor?.amount || 0,
+                  contributor?.currency ||
+                  data?.currency ||
+                  ventureCurrency(
+                    ventureState.venture
+                  )
+                );
+
+              const date =
+                contributor?.paidAt
+                  ? new Date(
+                      contributor.paidAt
+                    )
+                  : null;
+
+              const dateText =
+                date &&
+                !Number.isNaN(
+                  date.getTime()
+                )
+                  ? date.toLocaleDateString(
+                      undefined,
+                      {
+                        month:"short",
+                        day:"numeric"
+                      }
+                    )
+                  : "Recent";
+
+              return `
+                <div class="venture-contributor-row">
+                  <div class="venture-contributor-avatar">
+                    ${
+                      image
+                        ? `<img src="${ventureEscapeHtml(image)}" alt="${ventureEscapeHtml(name)}">`
+                        : ventureEscapeHtml(
+                            ventureContributorInitials(
+                              name
+                            )
+                          )
+                    }
+                  </div>
+
+                  <div class="venture-contributor-copy">
+                    <strong>${ventureEscapeHtml(name)}</strong>
+                    <span>${ventureEscapeHtml(dateText)}</span>
+                  </div>
+
+                  <span class="venture-contributor-amount">${ventureEscapeHtml(amount)}</span>
+                </div>
+              `;
+
+            }
+          )
+          .join("");
+    }
+
+
+    async function loadVentureContributors(){
+      if(!ventureState.ventureId){
+        return;
+      }
+
+      const list =
+        ventureElement(
+          "ventureContributorList"
+        );
+
+      if(list){
+        list.innerHTML =
+          '<div class="venture-loading-state">Loading supporters…</div>';
+      }
+
+      try{
+        const data =
+          await ventureApiGet(
+            `/api/payments/venture/${
+              encodeURIComponent(
+                ventureState.ventureId
+              )
+            }/contributors`
+          );
+
+        renderVentureContributors(
+          data
+        );
+
+      }catch(error){
+        console.warn(
+          "Venture contributors could not be loaded:",
+          error
+        );
+
+        if(list){
+          list.innerHTML =
+            '<div class="venture-empty-state"><strong>Supporters unavailable</strong><p>Contribution history could not be loaded right now.</p></div>';
+        }
+      }
+    }
+
+
+    /* =====================================================
        SAVE / UNSAVE VENTURE
     ====================================================== */
 
@@ -16625,14 +16900,6 @@ async function toggleVentureSaved(){
 
     renderVentureSavedState();
 
-
-    function startVentureContribution(presetAmount){
-      const input=document.getElementById("ventureContributionAmount");
-      const amount=Number(presetAmount || input?.value || 0);
-      if(!Number.isFinite(amount) || amount < 1){ input?.focus(); return; }
-      const ventureId=ventureState.ventureId || new URLSearchParams(location.search).get("id") || "";
-      location.href=`checkout.html?type=venture_contribution&id=${encodeURIComponent(ventureId)}&amount=${encodeURIComponent(amount.toFixed(2))}`;
-    }
 
     if(
       response?.savesCount !==
