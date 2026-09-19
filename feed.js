@@ -2159,7 +2159,7 @@ ${files.map((file, index) => {
       </button>
 
       ${
-        file.type.startsWith("video/")
+        getPostMediaType(file) === "video"
           ? renderVideoPreview(url)
           : `<img src="${url}" alt="">`
       }
