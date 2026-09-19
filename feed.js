@@ -295,6 +295,7 @@ function saveHiddenComment(commentId){
       copy: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
       flag: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V4"></path><path d="M4 4h13l-1 5 1 5H4"></path></svg>`,
       info: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>`,
+      userMinus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8" cy="7" r="4"></circle><path d="M23 11h-6"></path></svg>`,
       send: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="M22 2 15 22 11 13 2 9 22 2Z"></path></svg>`,
       search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>`,
       trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>`,
@@ -3780,6 +3781,8 @@ async function sendSelectedPost(postId) {
     const author = post?.author || {};
     const owner = isMine(author._id);
     const admin = isAdmin();
+    const followed = isFollowing(author);
+    const requested = isFollowRequested(author);
 
     document.getElementById("aiftMenuBody").innerHTML = owner
       ? `
@@ -3796,6 +3799,12 @@ async function sendSelectedPost(postId) {
           <button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>
         `
         : `
+          ${followed
+            ? `<button class="aift-sheet-option" onclick="AIFTFeed.unfollowFromPost('${esc(postId)}','${esc(author._id)}')">${svg("userMinus")}<span>Unfollow</span></button>`
+            : requested
+              ? `<button class="aift-sheet-option" onclick="AIFTFeed.unfollowFromPost('${esc(postId)}','${esc(author._id)}')">${svg("close")}<span>Cancel follow request</span></button>`
+              : ""
+          }
           <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
           <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">${svg("close")}<span>Not interested</span></button>
           <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
@@ -4010,6 +4019,17 @@ async function toggleFollow(userId) {
       btn.textContent = isNowFollowing ? "Following" : isRequested ? "Requested" : "Follow";
     });
 
+    if(data.status === "requested"){
+      buttons.forEach(btn => {
+        if(!btn.classList.contains("aift-reel-follow-btn")){
+          btn.classList.remove("is-loading");
+          btn.classList.add("is-follow-animated");
+          btn.innerHTML = '<span class="aift-follow-check" aria-hidden="true">✓</span><span>Requested</span>';
+        }
+      });
+      await new Promise(resolve => setTimeout(resolve, 520));
+    }
+
     renderFeedOnly();
 
     if(data.status === "requested"){
@@ -4019,13 +4039,22 @@ async function toggleFollow(userId) {
     }else if(data.status === "unfollowed"){
       toast("You unfollowed this profile.");
     }
+
+    return data;
   } catch (err) {
     buttons.forEach(btn => {
       btn.disabled = false;
       btn.classList.remove("is-loading");
     });
     toast(err.message, "error");
+    return null;
   }
+}
+
+async function unfollowFromPost(postId, userId){
+  const data = await toggleFollow(userId);
+  if(!data) return;
+  closeOverlays();
 }
 
 async function visitProfile(userId) {
@@ -4464,6 +4493,7 @@ copyCommentLink,
     sendCommentOwner,
     deletePost,
     toggleFollow,
+    unfollowFromPost,
     openReelMode,
 closeReelMode,
 handleReelScreenTap,
