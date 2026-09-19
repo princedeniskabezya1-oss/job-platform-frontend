@@ -267,6 +267,7 @@
     wait.hidden=false;
     const target=new URL(url.href);
     target.searchParams.set("aiftSection","1");
+    if(file==="home.html")target.searchParams.set("v","20260919-r2-multipart-2");
     frame.addEventListener("load",()=>requestAnimationFrame(()=>{
       activateSectionFrame(frame);
       syncFrameNavigation(frame);
