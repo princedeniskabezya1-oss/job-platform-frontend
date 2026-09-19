@@ -731,13 +731,18 @@ function observeFeedVideos(){
 
       if(entry.isIntersecting && entry.intersectionRatio >= 0.6){
         document.querySelectorAll(".aift-feed-video").forEach(v => {
-          if(v !== video) v.pause();
+          if(v !== video){
+            v.pause();
+            v.preload = "metadata";
+          }
         });
 
+        video.preload = "auto";
         video.muted = state.globalVideoMuted;
         video.play().catch(() => {});
       }else{
         video.pause();
+        video.preload = "metadata";
       }
     });
   }, {
@@ -1902,7 +1907,7 @@ function restoreFeedScroll(){
   muted
   playsinline
   loop
-  preload="auto"
+  preload="metadata"
   data-post-id="${esc(post._id)}"
   onerror="AIFTFeed.retryVideoSource(this)"
   
