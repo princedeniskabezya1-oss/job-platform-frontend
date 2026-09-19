@@ -2273,6 +2273,111 @@ async function getPostMediaUploadSignature(type) {
   );
 }
 
+function getR2VideoContentType(file) {
+  const mime = String(file?.type || "").toLowerCase().split(";")[0].trim();
+  if (mime.startsWith("video/")) return mime;
+
+  const name = String(file?.name || "").toLowerCase();
+  const extension = name.includes(".") ? name.split(".").pop() : "";
+  const byExtension = {
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    m4v: "video/x-m4v",
+    webm: "video/webm",
+    avi: "video/x-msvideo",
+    mkv: "video/x-matroska",
+    "3gp": "video/3gpp",
+    "3g2": "video/3gpp2",
+    mpeg: "video/mpeg",
+    mpg: "video/mpeg",
+    mts: "video/mp2t",
+    m2ts: "video/mp2t",
+    ts: "video/mp2t"
+  };
+
+  return byExtension[extension] || "";
+}
+
+async function getR2VideoUploadUrl(file) {
+  const contentType = getR2VideoContentType(file);
+
+  if (!contentType) {
+    throw new Error("This video format could not be identified for upload.");
+  }
+
+  return api(`${API}/api/posts/media-upload-r2-url`, {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      filename: file?.name || "video",
+      contentType,
+      size: Number(file?.size || 0)
+    })
+  });
+}
+
+function uploadVideoDirectToR2(file, uploadData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const uploadUrl = String(uploadData?.uploadUrl || "").trim();
+    const publicUrl = String(uploadData?.publicUrl || "").trim();
+    const contentType = String(uploadData?.contentType || file?.type || "").trim();
+
+    if (!uploadUrl || !publicUrl || !contentType) {
+      reject(new Error("R2 did not return a complete video upload authorization."));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.timeout = 60 * 60 * 1000;
+    xhr.setRequestHeader("Content-Type", contentType);
+
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) {
+        onProgress?.(event.loaded, event.total);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(file.size, file.size);
+        resolve({
+          url: publicUrl,
+          type: "video"
+        });
+        return;
+      }
+
+      let message = `Video upload failed (${xhr.status}).`;
+      const responseText = String(xhr.responseText || "").trim();
+
+      if (responseText && responseText.length < 500) {
+        message += ` ${responseText}`;
+      }
+
+      const error = new Error(message);
+      error.status = xhr.status;
+      reject(error);
+    };
+
+    xhr.onerror = () => {
+      const error = new Error(
+        "The R2 video upload connection failed. Please check your connection and try again."
+      );
+      error.status = 0;
+      reject(error);
+    };
+
+    xhr.ontimeout = () => {
+      const error = new Error("The R2 video upload took too long to finish.");
+      error.status = 408;
+      reject(error);
+    };
+
+    xhr.send(file);
+  });
+}
+
 function cloudinaryUploadForm(filePart, fileName, signatureData) {
   const form = new FormData();
   form.append("file", filePart, fileName);
@@ -2490,22 +2595,39 @@ async function uploadPostMediaDirect(files, onProgress) {
         attempt += 1;
 
         try{
-          const signature = await getPostMediaUploadSignature(type);
+          if (type === "video") {
+            const uploadData = await getR2VideoUploadUrl(file);
 
-          results[index] = await uploadFileDirectToCloudinary(
-            file,
-            signature,
-            loaded => {
-              // Sending the final byte is not the same as Cloudinary
-              // finishing the upload. Keep the visible total below 100
-              // until a secure delivery URL has actually been returned.
-              loadedByIndex[index] = Math.min(
-                Math.max(0, file.size - 1),
-                Math.max(0, loaded)
-              );
-              report();
-            }
-          );
+            results[index] = await uploadVideoDirectToR2(
+              file,
+              uploadData,
+              loaded => {
+                // Keep the aggregate below 100 until R2 confirms the PUT.
+                loadedByIndex[index] = Math.min(
+                  Math.max(0, file.size - 1),
+                  Math.max(0, loaded)
+                );
+                report();
+              }
+            );
+          } else {
+            const signature = await getPostMediaUploadSignature(type);
+
+            results[index] = await uploadFileDirectToCloudinary(
+              file,
+              signature,
+              loaded => {
+                // Sending the final byte is not the same as Cloudinary
+                // finishing the upload. Keep the visible total below 100
+                // until a secure delivery URL has actually been returned.
+                loadedByIndex[index] = Math.min(
+                  Math.max(0, file.size - 1),
+                  Math.max(0, loaded)
+                );
+                report();
+              }
+            );
+          }
 
           loadedByIndex[index] = file.size;
           report();
