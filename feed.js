@@ -85,6 +85,7 @@ reelPanelPostId: null,
 reelSkip: 0,
 reelHasMore: true,
 reelLoading: false,
+reelPlaybackActive: false,
 feedSeed: sessionStorage.getItem("aiftFeedSeed") || "",
 feedHiddenAt: 0,
 feedRefreshReady: false,
@@ -590,7 +591,7 @@ function stopFeedPlaybackForReels(){
 
   document.querySelectorAll("video, audio").forEach(media => {
     if(media.closest("#aiftReelViewer")) return;
-    media.pause();
+    try{ media.pause(); }catch{}
     media.muted = true;
   });
 }
@@ -711,6 +712,12 @@ function observeFeedVideos(){
     entries.forEach(entry => {
       const video = entry.target;
 
+      if(state.reelPlaybackActive || document.body.classList.contains("aift-reel-open")){
+        try{ video.pause(); }catch{}
+        video.muted = true;
+        return;
+      }
+
       if(entry.isIntersecting && entry.intersectionRatio >= 0.6){
         document.querySelectorAll(".aift-feed-video").forEach(v => {
           if(v !== video) v.pause();
@@ -793,20 +800,31 @@ async function loadReelBatch({ reset = false } = {}){
 }
 
 async function openReelMode(postId, refreshRecommendations = true, resumeTime = null){
+  state.reelPlaybackActive = true;
   syncFeedHost(true, true);
   stopFeedPlaybackForReels();
 
   if(refreshRecommendations && !state.guestMode){
     await loadReelBatch({ reset: true });
   }
+
+  // Recommendation loading is asynchronous, so stop background media once more
+  // before the Reel viewer is mounted. This prevents queued feed autoplay from
+  // continuing underneath the Reel on mobile or desktop.
+  stopFeedPlaybackForReels();
+
   const videos = getVideoPosts();
 
   if(!videos.length){
+    state.reelPlaybackActive = false;
     syncFeedHost(true, false);
     return;
   }
 
-  document.querySelectorAll(".aift-feed-video").forEach(v => v.pause());
+  document.querySelectorAll(".aift-feed-video").forEach(v => {
+    try{ v.pause(); }catch{}
+    v.muted = true;
+  });
 
   let modal = document.getElementById("aiftReelViewer");
 
@@ -1235,6 +1253,7 @@ function closeReelMode(){
         viewer.style.display = "none";
       }
 
+      state.reelPlaybackActive = false;
       syncFeedHost(true, false);
       observeFeedVideos();
     });
@@ -1256,6 +1275,8 @@ function observeReelVideos(){
       const postId = slide?.dataset.postId;
 
       if(entry.isIntersecting && entry.intersectionRatio >= 0.75){
+        stopFeedPlaybackForReels();
+
         document.querySelectorAll(".aift-reel-video").forEach(v => {
           if(v !== video){
             v.pause();
@@ -1929,7 +1950,6 @@ function renderOriginalPostCard(original) {
                 data-follow-user="${esc(author._id)}"
                 onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
               >
-                ${requested ? "" : '<span class="aift-follow-plus">+</span>'}
                 <span>${requested ? "Requested" : "Follow"}</span>
               </button>
             `
@@ -2038,7 +2058,6 @@ ${
         data-follow-user="${esc(author._id)}"
         onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
       >
-        ${requested ? "" : '<span class="aift-follow-plus">+</span>'}
         <span>${requested ? "Requested" : "Follow"}</span>
       </button>`
     : ""
