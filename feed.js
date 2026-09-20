@@ -76,9 +76,11 @@ const AIFTFeed = (() => {
     isMobile: window.innerWidth <= 768,
     lastTapAt: 0,
     viewedPosts: new Set(),
-globalVideoMuted: true,
 videoObserver: null,
 activeFeedVideo: null,
+feedVideoVisibility: new Map(),
+feedVideoFrame: 0,
+feedCenterScrollReady: false,
 reelObserver: null,
 reelActivePostId: null,
 reelScrollY: 0,
@@ -594,7 +596,6 @@ function stopFeedPlaybackForReels(){
   document.querySelectorAll("video, audio").forEach(media => {
     if(media.closest("#aiftReelViewer")) return;
     try{ media.pause(); }catch{}
-    media.muted = true;
   });
 }
 
@@ -662,7 +663,7 @@ function setupFeedRefresh(){
 }
 function updateSoundBadges(){
   document.querySelectorAll(".aift-video-sound").forEach(btn => {
-    const muted = state.globalVideoMuted;
+    const muted = btn.closest(".aift-video-wrap")?.querySelector(".aift-feed-video")?.muted !== false;
     btn.innerHTML = muted ? svg("volumeOff") : svg("volume");
     btn.classList.toggle("is-on", !muted);
     btn.setAttribute("aria-label", muted ? "Unmute video" : "Mute video");
@@ -670,37 +671,58 @@ function updateSoundBadges(){
   });
 
   document.querySelectorAll(".aift-reel-sound").forEach(btn => {
-    btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
-    btn.classList.toggle("is-on", !state.globalVideoMuted);
+    const muted = btn.closest(".aift-reel-slide")?.querySelector(".aift-reel-video")?.muted !== false;
+    btn.textContent = muted ? "Muted" : "Sound on";
+    btn.classList.toggle("is-on", !muted);
   });
 }
 
-function setAllVideoMuted(muted, sourceBtn = null){
-  state.globalVideoMuted = muted;
+function updateFeedSoundButton(video){
+  const btn = video?.closest(".aift-video-wrap")?.querySelector(".aift-video-sound");
+  if(!btn) return;
+  btn.innerHTML = video.muted ? svg("volumeOff") : svg("volume");
+  btn.classList.toggle("is-on", !video.muted);
+  btn.setAttribute("aria-label", video.muted ? "Unmute video" : "Mute video");
+  btn.setAttribute("title", video.muted ? "Unmute video" : "Mute video");
+}
 
-  document.querySelectorAll(".aift-feed-video, .aift-reel-video").forEach(video => {
-    video.muted = muted;
+function selectCenteredFeedVideo(){
+  state.feedVideoFrame = 0;
+
+  if(document.hidden || state.reelPlaybackActive || document.body.classList.contains("aift-reel-open")) return;
+
+  const viewportTop = Number(window.visualViewport?.offsetTop || 0);
+  const viewportHeight = Number(window.visualViewport?.height || window.innerHeight || 0);
+  const viewportCenter = viewportTop + viewportHeight / 2;
+  let selected = null;
+  let nearest = Infinity;
+
+  state.feedVideoVisibility.forEach((ratio, video) => {
+    if(!video.isConnected || ratio <= 0.15) return;
+    const rect = video.getBoundingClientRect();
+    const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
+    if(distance < nearest){
+      nearest = distance;
+      selected = video;
+    }
   });
 
-  updateSoundBadges();
-
-  document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
-    pop.textContent = muted ? "Muted" : "Sound on";
-    pop.classList.remove("show", "is-paused");
+  state.feedVideoVisibility.forEach((ratio, video) => {
+    if(video === selected){
+      state.activeFeedVideo = video;
+      video.preload = "auto";
+      if(video.paused) video.play().catch(() => {});
+      return;
+    }
+    if(!video.paused) video.pause();
   });
 
-  const activeSlide =
-    sourceBtn?.closest?.(".aift-reel-slide") ||
-    document.querySelector(`.aift-reel-slide[data-post-id="${CSS.escape(String(state.reelActivePostId || ""))}"]`);
+  if(!selected) state.activeFeedVideo = null;
+}
 
-  const pop = activeSlide?.querySelector(".aift-reel-sound-pop");
-
-  if(pop){
-    pop.textContent = muted ? "Muted" : "Sound on";
-    pop.classList.remove("show", "is-paused");
-    void pop.offsetWidth;
-    pop.classList.add("show");
-  }
+function scheduleCenteredFeedVideo(){
+  if(state.feedVideoFrame) return;
+  state.feedVideoFrame = requestAnimationFrame(selectCenteredFeedVideo);
 }
 
 function observeFeedVideos(){
@@ -711,6 +733,7 @@ function observeFeedVideos(){
     state.videoObserver = null;
   }
   state.activeFeedVideo = null;
+  state.feedVideoVisibility.clear();
 
   if(!("IntersectionObserver" in window)){
     videos.forEach(video => {
@@ -724,34 +747,19 @@ function observeFeedVideos(){
   state.videoObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       const video = entry.target;
-
-      if(state.reelPlaybackActive || document.body.classList.contains("aift-reel-open")){
-        try{ video.pause(); }catch{}
-        video.muted = true;
-        return;
-      }
-
-      if(entry.isIntersecting && entry.intersectionRatio >= 0.6){
-        videos.forEach(v => {
-          if(v !== video){
-            if(!v.paused) v.pause();
-          }
-        });
-
-        state.activeFeedVideo = video;
-        video.preload = "auto";
-        video.muted = state.globalVideoMuted;
-        if(video.paused) video.play().catch(() => {});
-      }else if(!entry.isIntersecting || entry.intersectionRatio <= 0.15){
-        if(!video.paused) video.pause();
-        if(state.activeFeedVideo === video) state.activeFeedVideo = null;
-      }
+      state.feedVideoVisibility.set(video, entry.isIntersecting ? entry.intersectionRatio : 0);
     });
+    scheduleCenteredFeedVideo();
   }, {
-    threshold:[0, .15, .6, .85]
+    threshold:[0, .15, .3, .5, .7, .9, 1]
   });
 
   videos.forEach(video => state.videoObserver.observe(video));
+  if(!state.feedCenterScrollReady){
+    state.feedCenterScrollReady = true;
+    addEventListener("scroll", scheduleCenteredFeedVideo, { passive:true });
+    window.visualViewport?.addEventListener("resize", scheduleCenteredFeedVideo, { passive:true });
+  }
   updateSoundBadges();
 }
 
@@ -876,7 +884,7 @@ modal.style.visibility = "visible";
               src="${esc(videoDeliveryUrl(video.url))}"
               poster="${esc(videoPosterUrl(video.url))}"
               data-original-src="${esc(video.url)}"
-              ${state.globalVideoMuted ? "muted" : ""}
+              muted
               playsinline
               loop
               preload="metadata"
@@ -888,7 +896,7 @@ modal.style.visibility = "visible";
   class="aift-reel-sound-pop"
   onclick="event.stopPropagation(); AIFTFeed.toggleReelSound(event)"
 >
-  ${state.globalVideoMuted ? "Muted" : "Sound on"}
+  Muted
 </div>
 
 <div class="aift-reel-play-indicator"></div>
@@ -1124,7 +1132,17 @@ handleReelLike(postId);
   
 function toggleReelSound(event){
   event?.stopPropagation();
-  setAllVideoMuted(!state.globalVideoMuted, event?.currentTarget);
+  const slide = event?.currentTarget?.closest?.(".aift-reel-slide");
+  const video = slide?.querySelector(".aift-reel-video");
+  const pop = slide?.querySelector(".aift-reel-sound-pop");
+  if(!video) return;
+  video.muted = !video.muted;
+  if(pop){
+    pop.textContent = video.muted ? "Muted" : "Sound on";
+    pop.classList.remove("show", "is-paused");
+    void pop.offsetWidth;
+    pop.classList.add("show");
+  }
 }
 function toggleFeedVideoSound(event){
   event?.preventDefault();
@@ -1136,7 +1154,9 @@ function toggleFeedVideoSound(event){
 
   if(!video) return;
 
-  setAllVideoMuted(!video.muted, event.currentTarget);
+  video.muted = !video.muted;
+  video.dataset.soundPreference = video.muted ? "muted" : "sound";
+  updateFeedSoundButton(video);
 }
 function handleFeedVideoTap(event, postId){
   event?.preventDefault();
@@ -1320,14 +1340,14 @@ if(activeIndex >= slides.length - 3 && state.reelHasMore && !state.reelLoading){
 
 document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
   pop.classList.remove("show", "is-paused");
-  pop.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
+  const popVideo = pop.closest(".aift-reel-slide")?.querySelector(".aift-reel-video");
+  pop.textContent = popVideo?.muted === false ? "Sound on" : "Muted";
 });
 
 document.querySelectorAll(".aift-reel-play-indicator").forEach(icon => {
   icon.classList.remove("show");
 });
 
-video.muted = state.globalVideoMuted;
 video.play().then(showReelUi).catch(() => {
   slide.querySelector(".aift-reel-play-indicator")?.classList.add("show");
   showReelUi();
@@ -4977,7 +4997,6 @@ copyCommentLink,
     openReelMode,
 closeReelMode,
 handleReelScreenTap,
-setAllVideoMuted,
     handleFeedVideoTap,
     retryVideoSource,
 toggleFeedVideoSound,
