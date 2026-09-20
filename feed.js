@@ -78,6 +78,7 @@ const AIFTFeed = (() => {
     viewedPosts: new Set(),
 globalVideoMuted: true,
 videoObserver: null,
+activeFeedVideo: null,
 reelObserver: null,
 reelActivePostId: null,
 reelScrollY: 0,
@@ -709,6 +710,7 @@ function observeFeedVideos(){
     state.videoObserver.disconnect();
     state.videoObserver = null;
   }
+  state.activeFeedVideo = null;
 
   if(!("IntersectionObserver" in window)){
     videos.forEach(video => {
@@ -730,23 +732,23 @@ function observeFeedVideos(){
       }
 
       if(entry.isIntersecting && entry.intersectionRatio >= 0.6){
-        document.querySelectorAll(".aift-feed-video").forEach(v => {
+        videos.forEach(v => {
           if(v !== video){
-            v.pause();
-            v.preload = "metadata";
+            if(!v.paused) v.pause();
           }
         });
 
+        state.activeFeedVideo = video;
         video.preload = "auto";
         video.muted = state.globalVideoMuted;
-        video.play().catch(() => {});
-      }else{
-        video.pause();
-        video.preload = "metadata";
+        if(video.paused) video.play().catch(() => {});
+      }else if(!entry.isIntersecting || entry.intersectionRatio <= 0.15){
+        if(!video.paused) video.pause();
+        if(state.activeFeedVideo === video) state.activeFeedVideo = null;
       }
     });
   }, {
-    threshold:[0, .25, .6, .85]
+    threshold:[0, .15, .6, .85]
   });
 
   videos.forEach(video => state.videoObserver.observe(video));
