@@ -162,11 +162,7 @@
 
   function syncFrameNavigation(frame){
     if(!frame?.isConnected)return;
-    let file="";
-    try{
-      file=frame.contentWindow.location.pathname.split("/").pop()||"";
-    }catch{}
-    setDashboardNavigationHidden(file!=="home.html" || frameNeedsCleanChrome(frame));
+    setDashboardNavigationHidden(frameNeedsCleanChrome(frame));
   }
 
   function shellSectionUrl(){
@@ -204,7 +200,7 @@
   function sizeSectionElement(element,bounds){
     element.style.top=`${bounds.top}px`;
     element.style.bottom=`${bounds.bottom}px`;
-    element.style.height="auto";
+    element.style.height=`${bounds.height}px`;
   }
 
   function closeSection(){
@@ -240,7 +236,7 @@
       return;
     }
     const file=url.pathname.split("/").pop()||"home.html";
-    setDashboardNavigationHidden(file!=="home.html");
+    setDashboardNavigationHidden(false);
     document.title=sectionTitles[file]||document.title;
     document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
       const href=item.getAttribute("href");
