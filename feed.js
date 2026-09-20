@@ -78,7 +78,6 @@ const AIFTFeed = (() => {
     viewedPosts: new Set(),
 videoObserver: null,
 activeFeedVideo: null,
-feedVideoVisibility: new Map(),
 feedVideoFrame: 0,
 feedCenterScrollReady: false,
 reelObserver: null,
@@ -697,9 +696,12 @@ function selectCenteredFeedVideo(){
   let selected = null;
   let nearest = Infinity;
 
-  state.feedVideoVisibility.forEach((ratio, video) => {
-    if(!video.isConnected || ratio <= 0.15) return;
+  const videos = Array.from(document.querySelectorAll(".aift-feed-video"));
+
+  videos.forEach(video => {
+    if(!video.isConnected) return;
     const rect = video.getBoundingClientRect();
+    if(rect.bottom <= viewportTop || rect.top >= viewportTop + viewportHeight) return;
     const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
     if(distance < nearest){
       nearest = distance;
@@ -707,11 +709,16 @@ function selectCenteredFeedVideo(){
     }
   });
 
-  state.feedVideoVisibility.forEach((ratio, video) => {
+  const activationDistance = viewportHeight * 0.32;
+  if(nearest > activationDistance) selected = null;
+
+  videos.forEach(video => {
     if(video === selected){
       state.activeFeedVideo = video;
       video.preload = "auto";
-      if(video.paused) video.play().catch(() => {});
+      if(video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused){
+        video.play().catch(() => {});
+      }
       return;
     }
     if(!video.paused) video.pause();
@@ -733,7 +740,6 @@ function observeFeedVideos(){
     state.videoObserver = null;
   }
   state.activeFeedVideo = null;
-  state.feedVideoVisibility.clear();
 
   if(!("IntersectionObserver" in window)){
     videos.forEach(video => {
@@ -744,11 +750,7 @@ function observeFeedVideos(){
     return;
   }
 
-  state.videoObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      const video = entry.target;
-      state.feedVideoVisibility.set(video, entry.isIntersecting ? entry.intersectionRatio : 0);
-    });
+  state.videoObserver = new IntersectionObserver(() => {
     scheduleCenteredFeedVideo();
   }, {
     threshold:[0, .15, .3, .5, .7, .9, 1]
@@ -1931,6 +1933,7 @@ function restoreFeedScroll(){
   loop
   preload="metadata"
   data-post-id="${esc(post._id)}"
+  oncanplay="AIFTFeed.scheduleCenteredFeedVideo()"
   onerror="AIFTFeed.retryVideoSource(this)"
   
   ondblclick="event.preventDefault(); event.stopPropagation();"
@@ -4999,6 +5002,7 @@ closeReelMode,
 handleReelScreenTap,
     handleFeedVideoTap,
     retryVideoSource,
+    scheduleCenteredFeedVideo,
 toggleFeedVideoSound,
     handlePostMediaTap,
     

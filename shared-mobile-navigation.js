@@ -365,7 +365,10 @@
 
   function handleSectionDocumentScroll(){
     const root=document.scrollingElement||document.documentElement;
-    const current=Math.max(Number(root.scrollTop||window.scrollY||0),0);
+    const raw=Number(root.scrollTop||window.scrollY||0);
+    const max=Math.max(0,Number(root.scrollHeight||0)-Number(root.clientHeight||innerHeight||0));
+    if(raw<0||raw>max+1)return;
+    const current=Math.max(raw,0);
     const goingDown=current>sectionLastScroll+3;
     const goingUp=current<sectionLastScroll-3;
     let nextHidden=sectionChromeHidden;
@@ -407,7 +410,11 @@
     const nav = document.querySelector(".aift-mobile-nav");
     if(!topbar || !nav) return;
 
-    const current = Math.max(window.scrollY || 0, 0);
+    const root=document.scrollingElement||document.documentElement;
+    const raw=Number(window.scrollY||root.scrollTop||0);
+    const max=Math.max(0,Number(root.scrollHeight||0)-Number(root.clientHeight||innerHeight||0));
+    if(raw<0||raw>max+1)return;
+    const current = Math.max(raw, 0);
     const down = current > lastScroll + 4;
     const up = current < lastScroll - 4;
 
@@ -442,7 +449,9 @@
     if(window.innerWidth>760||event.target===document)return;
     const target=event.target;
     if(!(target instanceof Element))return;
-    const current=Math.max(Number(target.scrollTop||0),0),previous=nestedScrollPositions.get(target)??current;
+    const raw=Number(target.scrollTop||0),max=Math.max(0,Number(target.scrollHeight||0)-Number(target.clientHeight||0));
+    if(raw<0||raw>max+1)return;
+    const current=Math.max(raw,0),previous=nestedScrollPositions.get(target)??current;
     nestedScrollPositions.set(target,current);
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
