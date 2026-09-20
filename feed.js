@@ -78,6 +78,7 @@ const AIFTFeed = (() => {
     viewedPosts: new Set(),
 videoObserver: null,
 activeFeedVideo: null,
+visibleFeedVideos: new Set(),
 feedVideoFrame: 0,
 feedCenterScrollReady: false,
 reelObserver: null,
@@ -696,7 +697,7 @@ function selectCenteredFeedVideo(){
   let selected = null;
   let nearest = Infinity;
 
-  const videos = Array.from(document.querySelectorAll(".aift-feed-video"));
+  const videos = Array.from(state.visibleFeedVideos).filter(video => video.isConnected);
 
   videos.forEach(video => {
     if(!video.isConnected) return;
@@ -715,7 +716,6 @@ function selectCenteredFeedVideo(){
   videos.forEach(video => {
     if(video === selected){
       state.activeFeedVideo = video;
-      video.preload = "auto";
       if(video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused){
         video.play().catch(() => {});
       }
@@ -740,6 +740,7 @@ function observeFeedVideos(){
     state.videoObserver = null;
   }
   state.activeFeedVideo = null;
+  state.visibleFeedVideos.clear();
 
   if(!("IntersectionObserver" in window)){
     videos.forEach(video => {
@@ -750,7 +751,14 @@ function observeFeedVideos(){
     return;
   }
 
-  state.videoObserver = new IntersectionObserver(() => {
+  state.videoObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        state.visibleFeedVideos.add(entry.target);
+      }else{
+        state.visibleFeedVideos.delete(entry.target);
+      }
+    });
     scheduleCenteredFeedVideo();
   }, {
     threshold:[0, .15, .3, .5, .7, .9, 1]
