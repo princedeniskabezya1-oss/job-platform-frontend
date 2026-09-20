@@ -162,7 +162,11 @@
 
   function syncFrameNavigation(frame){
     if(!frame?.isConnected)return;
-    setDashboardNavigationHidden(frameNeedsCleanChrome(frame));
+    let file="";
+    try{
+      file=frame.contentWindow.location.pathname.split("/").pop()||"";
+    }catch{}
+    setDashboardNavigationHidden(file!=="home.html" || frameNeedsCleanChrome(frame));
   }
 
   function shellSectionUrl(){
@@ -236,7 +240,7 @@
       return;
     }
     const file=url.pathname.split("/").pop()||"home.html";
-    setDashboardNavigationHidden(false);
+    setDashboardNavigationHidden(file!=="home.html");
     document.title=sectionTitles[file]||document.title;
     document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
       const href=item.getAttribute("href");
