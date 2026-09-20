@@ -200,7 +200,7 @@
   function sizeSectionElement(element,bounds){
     element.style.top=`${bounds.top}px`;
     element.style.bottom=`${bounds.bottom}px`;
-    element.style.height=`${bounds.height}px`;
+    element.style.height="auto";
   }
 
   function closeSection(){
