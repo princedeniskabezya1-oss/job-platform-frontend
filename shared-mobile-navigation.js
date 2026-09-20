@@ -366,8 +366,8 @@
   function handleSectionDocumentScroll(){
     const root=document.scrollingElement||document.documentElement;
     const current=Math.max(Number(root.scrollTop||window.scrollY||0),0);
-    const goingDown=current>sectionLastScroll+3;
-    const goingUp=current<sectionLastScroll-3;
+    const goingDown=current>sectionLastScroll+1;
+    const goingUp=current<sectionLastScroll-1;
     let nextHidden=sectionChromeHidden;
 
     if(goingDown&&current>12)nextHidden=true;
@@ -408,8 +408,8 @@
     if(!topbar || !nav) return;
 
     const current = Math.max(window.scrollY || 0, 0);
-    const down = current > lastScroll + 4;
-    const up = current < lastScroll - 4;
+    const down = current > lastScroll + 1;
+    const up = current < lastScroll - 1;
 
     topbar.classList.toggle("is-glass", current > 20);
 
@@ -446,8 +446,8 @@
     nestedScrollPositions.set(target,current);
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
-    if(current>previous+2&&current>8)nav.classList.add("aift-mobile-nav--hidden");
-    if((current<previous-2||current<=8)&&!composerChromeHidden)nav.classList.remove("aift-mobile-nav--hidden");
+    if(current>previous+1&&current>8)nav.classList.add("aift-mobile-nav--hidden");
+    if((current<previous-1||current<=8)&&!composerChromeHidden)nav.classList.remove("aift-mobile-nav--hidden");
   }
 
   window.openMobileComposer = window.openMobileComposer || function(event){

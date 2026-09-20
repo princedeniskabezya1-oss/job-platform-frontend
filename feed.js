@@ -2183,7 +2183,9 @@ data-short="${textData.short}"
         <div class="aift-carousel-preview">
           <div class="aift-carousel-track" onscroll="AIFTFeed.updateCarouselDots(this)">
 ${files.map((file, index) => {
-  const url = URL.createObjectURL(file);
+  const type = getPostMediaType(file);
+  const isLargeVideo = type === "video" && file.size > 25 * 1024 * 1024;
+  const url = isLargeVideo ? "" : URL.createObjectURL(file);
 
   return `
     <div class="aift-carousel-slide aift-preview-item">
@@ -2192,8 +2194,8 @@ ${files.map((file, index) => {
       </button>
 
       ${
-        getPostMediaType(file) === "video"
-          ? renderVideoPreview(url)
+        type === "video"
+          ? (isLargeVideo ? renderLargeVideoSelection(file) : renderVideoPreview(url))
           : `<img src="${url}" alt="">`
       }
     </div>
@@ -2233,6 +2235,15 @@ ${files.map((file, index) => {
 
 function renderVideoPreview(url){
   return `<div class="aift-clean-preview"><video src="${esc(url)}" playsinline preload="metadata" onended="this.parentElement.classList.remove('is-playing');this.nextElementSibling.textContent='▶';this.nextElementSibling.setAttribute('aria-label','Play video preview')"></video><button type="button" class="aift-preview-play" aria-label="Play video preview" onclick="AIFTFeed.togglePreviewVideo(this)">▶</button></div>`;
+}
+
+function renderLargeVideoSelection(file){
+  const size = Number(file?.size || 0);
+  const label = size >= 1024 * 1024 * 1024
+    ? `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`
+    : `${Math.max(1, Math.round(size / (1024 * 1024)))} MB`;
+
+  return `<div class="aift-large-video-selection"><span aria-hidden="true">▶</span><strong>${label} video selected</strong><small>Ready to upload</small></div>`;
 }
 
 function togglePreviewVideo(button){

@@ -2,6 +2,29 @@
 
 (function(){
   let startPostFiles = [];
+  const LARGE_VIDEO_PREVIEW_BYTES = 25 * 1024 * 1024;
+
+  function formatSelectedFileSize(bytes){
+    const value = Math.max(0, Number(bytes) || 0);
+    if(value >= 1024 * 1024 * 1024) return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    if(value >= 1024 * 1024) return `${Math.round(value / (1024 * 1024))} MB`;
+    return `${Math.max(1, Math.round(value / 1024))} KB`;
+  }
+
+  window.loadStartPostVideoPreview = function(button){
+    const index = Number(button?.dataset?.index);
+    const file = startPostFiles[index];
+    if(!file || !button?.parentElement) return;
+
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.src = url;
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.addEventListener("emptied", () => URL.revokeObjectURL(url), { once:true });
+    button.parentElement.replaceChildren(video);
+  };
 
   function getAPI(){
     return window.API || "https://backend-1-9b6f.onrender.com";
@@ -175,13 +198,29 @@
     if(!preview) return;
 
     preview.innerHTML = startPostFiles.map((file, index) => {
+      const isVideo = file.type.startsWith("video/");
+
+      if(isVideo && file.size > LARGE_VIDEO_PREVIEW_BYTES){
+        return `
+          <div class="start-preview-item">
+            <button type="button" onclick="removeStartPostMedia(${index})">×</button>
+            <div class="start-video-placeholder">
+              <span aria-hidden="true">▶</span>
+              <strong>${formatSelectedFileSize(file.size)} video selected</strong>
+              <small>Ready to upload</small>
+              <button type="button" class="start-video-preview-button" data-index="${index}" onclick="loadStartPostVideoPreview(this)">Preview</button>
+            </div>
+          </div>
+        `;
+      }
+
       const url = URL.createObjectURL(file);
 
       return `
         <div class="start-preview-item">
           <button type="button" onclick="removeStartPostMedia(${index})">×</button>
           ${
-            file.type.startsWith("video/")
+            isVideo
               ? `<video src="${url}" controls playsinline></video>`
               : `<img src="${url}" alt="">`
           }
