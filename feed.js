@@ -208,8 +208,6 @@ function saveHiddenComment(commentId){
       repost: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
       share: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>`,
       save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path></svg>`,
-      volume: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18 6a8.5 8.5 0 0 1 0 12"></path></svg>`,
-      volumeOff: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="m16 9 5 5"></path><path d="m21 9-5 5"></path></svg>`,
       more: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>`,
       close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`,
       check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>`,
@@ -382,34 +380,16 @@ await loadFeed({ reset: true });
     `;
   }
 function updateSoundBadges(){
-  document.querySelectorAll(".aift-video-sound").forEach(btn => {
-    const video = btn.closest(".aift-video-wrap")?.querySelector(".aift-feed-video");
-    const muted = video?.muted !== false;
-    btn.innerHTML = muted ? svg("volumeOff") : svg("volume");
-    btn.classList.toggle("is-on", !muted);
-    btn.setAttribute("aria-label", muted ? "Unmute video" : "Mute video");
-    btn.setAttribute("title", muted ? "Unmute video" : "Mute video");
-  });
-
-  document.querySelectorAll(".aift-reel-sound").forEach(btn => {
+  document.querySelectorAll(".aift-video-sound, .aift-reel-sound").forEach(btn => {
     btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
     btn.classList.toggle("is-on", !state.globalVideoMuted);
   });
 }
 
-function updateFeedSoundButton(video){
-  const btn = video?.closest(".aift-video-wrap")?.querySelector(".aift-video-sound");
-  if(!btn) return;
-  btn.innerHTML = video.muted ? svg("volumeOff") : svg("volume");
-  btn.classList.toggle("is-on", !video.muted);
-  btn.setAttribute("aria-label", video.muted ? "Unmute video" : "Mute video");
-  btn.setAttribute("title", video.muted ? "Unmute video" : "Mute video");
-}
-
 function setAllVideoMuted(muted, sourceBtn = null){
   state.globalVideoMuted = muted;
 
-  document.querySelectorAll(".aift-reel-video").forEach(video => {
+  document.querySelectorAll(".aift-feed-video, .aift-reel-video").forEach(video => {
     video.muted = muted;
   });
 
@@ -450,6 +430,7 @@ function observeFeedVideos(){
           if(v !== video) v.pause();
         });
 
+        video.muted = state.globalVideoMuted;
         video.play().catch(() => {});
       }else{
         video.pause();
@@ -723,8 +704,9 @@ function toggleReelSound(event){
   setAllVideoMuted(!state.globalVideoMuted, event?.currentTarget);
 }
 function toggleFeedVideoSound(event){
-  event?.preventDefault();
   event?.stopPropagation();
+
+  if(!isMobileNow()) return;
 
   const video = event.currentTarget
     ?.closest(".aift-video-wrap")
@@ -732,8 +714,7 @@ function toggleFeedVideoSound(event){
 
   if(!video) return;
 
-  video.muted = !video.muted;
-  updateFeedSoundButton(video);
+  setAllVideoMuted(!video.muted, event.currentTarget);
 }
 function handleFeedVideoTap(event, postId){
   event?.preventDefault();
@@ -1435,10 +1416,8 @@ function restoreFeedScroll(){
   type="button"
   onpointerdown="event.preventDefault(); event.stopPropagation();"
   onclick="event.preventDefault(); event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(event)"
-  aria-label="Unmute video"
-  title="Unmute video"
 >
-  ${svg("volumeOff")}
+  Muted
 </button>
    </div>`
                   : `<img class="aift-post-media" src="${esc(item.url)}" alt="Post media" loading="lazy" />`
@@ -1747,644 +1726,6 @@ ${files.map((file, index) => {
 }
   
 
-async function getPostMediaUploadSignature(type) {
-  return api(
-    `${API}/api/posts/media-upload-signature?type=${encodeURIComponent(type)}`,
-    { headers: headers() }
-  );
-}
-
-function getR2VideoContentType(file) {
-  const mime = String(file?.type || "").toLowerCase().split(";")[0].trim();
-  if (mime.startsWith("video/")) return mime;
-
-  const name = String(file?.name || "").toLowerCase();
-  const extension = name.includes(".") ? name.split(".").pop() : "";
-  const byExtension = {
-    mp4: "video/mp4",
-    mov: "video/quicktime",
-    m4v: "video/x-m4v",
-    webm: "video/webm",
-    avi: "video/x-msvideo",
-    mkv: "video/x-matroska",
-    "3gp": "video/3gpp",
-    "3g2": "video/3gpp2",
-    mpeg: "video/mpeg",
-    mpg: "video/mpeg",
-    mts: "video/mp2t",
-    m2ts: "video/mp2t",
-    ts: "video/mp2t"
-  };
-
-  return byExtension[extension] || "";
-}
-
-async function getR2VideoUploadUrl(file) {
-  const contentType = getR2VideoContentType(file);
-
-  if (!contentType) {
-    throw new Error("This video format could not be identified for upload.");
-  }
-
-  return api(`${API}/api/posts/media-upload-r2-url`, {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify({
-      filename: file?.name || "video",
-      contentType,
-      size: Number(file?.size || 0)
-    })
-  });
-}
-
-function uploadVideoDirectToR2(file, uploadData, onProgress) {
-  return new Promise((resolve, reject) => {
-    const uploadUrl = String(uploadData?.uploadUrl || "").trim();
-    const publicUrl = String(uploadData?.publicUrl || "").trim();
-    const contentType = String(uploadData?.contentType || file?.type || "").trim();
-
-    if (!uploadUrl || !publicUrl || !contentType) {
-      reject(new Error("R2 did not return a complete video upload authorization."));
-      return;
-    }
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", uploadUrl);
-    xhr.timeout = 60 * 60 * 1000;
-    xhr.setRequestHeader("Content-Type", contentType);
-
-    xhr.upload.onprogress = event => {
-      if (event.lengthComputable) {
-        onProgress?.(event.loaded, event.total);
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress?.(file.size, file.size);
-        resolve({
-          url: publicUrl,
-          type: "video"
-        });
-        return;
-      }
-
-      let message = `Video upload failed (${xhr.status}).`;
-      const responseText = String(xhr.responseText || "").trim();
-
-      if (responseText && responseText.length < 500) {
-        message += ` ${responseText}`;
-      }
-
-      const error = new Error(message);
-      error.status = xhr.status;
-      reject(error);
-    };
-
-    xhr.onerror = () => {
-      const error = new Error(
-        "The R2 video upload connection failed. Please check your connection and try again."
-      );
-      error.status = 0;
-      reject(error);
-    };
-
-    xhr.ontimeout = () => {
-      const error = new Error("The R2 video upload took too long to finish.");
-      error.status = 408;
-      reject(error);
-    };
-
-    xhr.send(file);
-  });
-}
-
-async function postR2Multipart(endpoint, payload) {
-  return api(`${API}/api/posts/media-upload-r2-multipart/${endpoint}`, {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload || {})
-  });
-}
-
-function uploadR2PartRequest(blob, uploadUrl, onProgress) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", uploadUrl);
-    xhr.timeout = 20 * 60 * 1000;
-    xhr.setRequestHeader("Content-Type", "application/octet-stream");
-
-    xhr.upload.onprogress = event => {
-      if (event.lengthComputable) {
-        onProgress?.(event.loaded, event.total);
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const etag = String(
-          xhr.getResponseHeader("ETag") ||
-          xhr.getResponseHeader("etag") ||
-          ""
-        ).trim();
-
-        if (!etag) {
-          const error = new Error("R2 uploaded a video part without returning its ETag.");
-          error.status = 502;
-          reject(error);
-          return;
-        }
-
-        onProgress?.(blob.size, blob.size);
-        resolve(etag);
-        return;
-      }
-
-      const error = new Error(`Video part upload failed (${xhr.status}).`);
-      error.status = xhr.status;
-      reject(error);
-    };
-
-    xhr.onerror = () => {
-      const error = new Error("The video part upload connection failed.");
-      error.status = 0;
-      reject(error);
-    };
-
-    xhr.ontimeout = () => {
-      const error = new Error("A video part took too long to upload.");
-      error.status = 408;
-      reject(error);
-    };
-
-    xhr.send(blob);
-  });
-}
-
-async function uploadLargeVideoDirectToR2(file, onProgress) {
-  const contentType = getR2VideoContentType(file);
-
-  if (!contentType) {
-    throw new Error("This video format could not be identified for upload.");
-  }
-
-  const session = await postR2Multipart("start", {
-    filename: file?.name || "video",
-    contentType,
-    size: Number(file?.size || 0)
-  });
-
-  const uploadId = String(session?.uploadId || "").trim();
-  const key = String(session?.key || "").trim();
-  const publicUrl = String(session?.publicUrl || "").trim();
-  const partSize = Math.max(
-    5 * 1024 * 1024,
-    Number(session?.partSize || 25 * 1024 * 1024)
-  );
-
-  if (!uploadId || !key || !publicUrl) {
-    throw new Error("R2 did not return a complete multipart upload session.");
-  }
-
-  const partCount = Math.ceil(file.size / partSize);
-  const loadedByPart = new Array(partCount).fill(0);
-  const completedParts = new Array(partCount);
-  let nextPartIndex = 0;
-
-  const report = () => {
-    const loaded = loadedByPart.reduce((sum, value) => sum + value, 0);
-    onProgress?.(Math.min(file.size, loaded), file.size);
-  };
-
-  const uploadPart = async index => {
-    const partNumber = index + 1;
-    const start = index * partSize;
-    const end = Math.min(file.size, start + partSize);
-    const blob = file.slice(start, end);
-
-    let attempt = 0;
-    let lastError = null;
-
-    while (attempt < 3) {
-      attempt += 1;
-
-      try {
-        const signed = await postR2Multipart("part-url", {
-          key,
-          uploadId,
-          partNumber
-        });
-
-        const etag = await uploadR2PartRequest(
-          blob,
-          String(signed?.uploadUrl || ""),
-          loaded => {
-            loadedByPart[index] = Math.max(0, Math.min(blob.size, loaded));
-            report();
-          }
-        );
-
-        loadedByPart[index] = blob.size;
-        completedParts[index] = { partNumber, etag };
-        report();
-        return;
-      } catch (error) {
-        lastError = error;
-        loadedByPart[index] = 0;
-        report();
-
-        const status = Number(error?.status || 0);
-        const retryable =
-          status === 0 ||
-          status === 408 ||
-          status === 429 ||
-          status >= 500;
-
-        if (!retryable || attempt >= 3) {
-          throw error;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 700 * attempt));
-      }
-    }
-
-    throw lastError || new Error("Video part upload failed.");
-  };
-
-  try {
-    async function worker() {
-      while (nextPartIndex < partCount) {
-        const index = nextPartIndex++;
-        await uploadPart(index);
-      }
-    }
-
-    const workerCount = Math.min(2, partCount);
-    await Promise.all(
-      Array.from({ length: workerCount }, () => worker())
-    );
-
-    const complete = await postR2Multipart("complete", {
-      key,
-      uploadId,
-      parts: completedParts
-    });
-
-    const finalUrl = String(complete?.url || publicUrl).trim();
-    if (!finalUrl) {
-      throw new Error("R2 completed the video but did not return its media URL.");
-    }
-
-    onProgress?.(file.size, file.size);
-
-    return {
-      url: finalUrl,
-      type: "video"
-    };
-  } catch (error) {
-    postR2Multipart("abort", { key, uploadId }).catch(() => {});
-    throw error;
-  }
-}
-
-function cloudinaryUploadForm(filePart, fileName, signatureData) {
-  const form = new FormData();
-  form.append("file", filePart, fileName);
-  form.append("api_key", signatureData.apiKey);
-  form.append("timestamp", String(signatureData.timestamp));
-  form.append("folder", signatureData.folder);
-  form.append("signature", signatureData.signature);
-  return form;
-}
-
-function cloudinaryUploadEndpoint(signatureData, resourceType) {
-  return `https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/${resourceType}/upload`;
-}
-
-function getPostMediaType(file) {
-  const mime = String(file?.type || "").toLowerCase();
-  if (mime.startsWith("video/")) return "video";
-  if (mime.startsWith("image/")) return "image";
-
-  const name = String(file?.name || "").toLowerCase();
-  const extension = name.includes(".") ? name.split(".").pop() : "";
-
-  const videoExtensions = new Set([
-    "mp4","mov","m4v","webm","avi","mkv","3gp","3g2","mpeg","mpg","mts","m2ts","ts"
-  ]);
-  const imageExtensions = new Set([
-    "jpg","jpeg","png","gif","webp","heic","heif","bmp","tif","tiff","avif"
-  ]);
-
-  if (videoExtensions.has(extension)) return "video";
-  if (imageExtensions.has(extension)) return "image";
-  return null;
-}
-
-function uploadCloudinaryRequest({
-  endpoint,
-  form,
-  timeout,
-  headers: requestHeaders = {},
-  onProgress
-}) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", endpoint);
-    xhr.timeout = timeout;
-
-    Object.entries(requestHeaders).forEach(([name, value]) => {
-      xhr.setRequestHeader(name, value);
-    });
-
-    xhr.upload.onprogress = event => {
-      if(event.lengthComputable){
-        onProgress?.(event.loaded, event.total);
-      }
-    };
-
-    xhr.onload = () => {
-      let data = {};
-
-      try {
-        data = JSON.parse(xhr.responseText || "{}");
-      } catch {}
-
-      if(xhr.status >= 200 && xhr.status < 300){
-        resolve(data);
-        return;
-      }
-
-      const cloudinaryError =
-        data?.error?.message ||
-        xhr.getResponseHeader("X-Cld-Error") ||
-        xhr.getResponseHeader("x-cld-error");
-
-      const error = new Error(
-        cloudinaryError ||
-        `Media upload failed (${xhr.status}).`
-      );
-      error.status = xhr.status;
-      error.cloudinary = Boolean(cloudinaryError);
-      reject(error);
-    };
-
-    xhr.onerror = () => {
-      const error = new Error("The media upload connection failed. Retrying may help on mobile networks.");
-      error.status = 0;
-      reject(error);
-    };
-
-    xhr.ontimeout = () => {
-      const error = new Error("The media upload took too long to finish.");
-      error.status = 408;
-      reject(error);
-    };
-
-    xhr.send(form);
-  });
-}
-
-async function uploadLargeFileDirectToCloudinary(
-  file,
-  signatureData,
-  resourceType,
-  onProgress
-) {
-  const endpoint = cloudinaryUploadEndpoint(signatureData, resourceType);
-  const chunkSize = 20 * 1024 * 1024;
-  const uploadId =
-    globalThis.crypto?.randomUUID?.() ||
-    `aift-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  let start = 0;
-  let finalResponse = null;
-
-  while(start < file.size){
-    const endExclusive = Math.min(start + chunkSize, file.size);
-    const chunk = file.slice(start, endExclusive);
-    const form = cloudinaryUploadForm(chunk, file.name, signatureData);
-
-    const response = await uploadCloudinaryRequest({
-      endpoint,
-      form,
-      timeout: 10 * 60 * 1000,
-      headers: {
-        "X-Unique-Upload-Id": uploadId,
-        "Content-Range": `bytes ${start}-${endExclusive - 1}/${file.size}`
-      },
-      onProgress: loaded => {
-        onProgress?.(Math.min(file.size, start + loaded), file.size);
-      }
-    });
-
-    finalResponse = response;
-    start = endExclusive;
-    onProgress?.(start, file.size);
-  }
-
-  if(!String(finalResponse?.secure_url || "").trim()){
-    throw new Error("Cloudinary finished receiving the video but did not return a media URL.");
-  }
-
-  return {
-    url: finalResponse.secure_url,
-    type: resourceType
-  };
-}
-
-async function uploadFileDirectToCloudinary(file, signatureData, onProgress) {
-  const resourceType = getPostMediaType(file);
-
-  if (!resourceType) {
-    throw new Error(`${file?.name || "This file"} is not recognized as a supported image or video.`);
-  }
-
-  /*
-    Cloudinary requires chunked Upload API calls above 100 MB.
-    Keep a little headroom so large phone videos never hit the
-    single-request ceiling.
-  */
-  if(file.size > 95 * 1024 * 1024){
-    return uploadLargeFileDirectToCloudinary(
-      file,
-      signatureData,
-      resourceType,
-      onProgress
-    );
-  }
-
-  const endpoint = cloudinaryUploadEndpoint(signatureData, resourceType);
-  const form = cloudinaryUploadForm(file, file.name, signatureData);
-
-  const data = await uploadCloudinaryRequest({
-    endpoint,
-    form,
-    timeout: 30 * 60 * 1000,
-    onProgress
-  });
-
-  if(!String(data.secure_url || "").trim()){
-    throw new Error("Media upload completed without a delivery URL.");
-  }
-
-  return {
-    url: data.secure_url,
-    type: resourceType
-  };
-}
-
-async function uploadPostMediaDirect(files, onProgress) {
-  if (!files.length) return [];
-
-  const totalBytes = files.reduce((sum, file) => sum + file.size, 0) || 1;
-  const loadedByIndex = new Array(files.length).fill(0);
-  const results = new Array(files.length);
-  let nextIndex = 0;
-
-  const report = () => {
-    const loaded = loadedByIndex.reduce((sum, value) => sum + value, 0);
-    onProgress?.(Math.min(100, Math.round((loaded / totalBytes) * 100)));
-  };
-
-  async function worker() {
-    while (nextIndex < files.length) {
-      const index = nextIndex++;
-      const file = files[index];
-      const type = getPostMediaType(file);
-
-      if (!type) {
-        throw new Error(`${file?.name || "This file"} is not recognized as a supported image or video.`);
-      }
-
-      let attempt = 0;
-      let lastError = null;
-
-      while(attempt < 2){
-        attempt += 1;
-
-        try{
-          if (type === "video") {
-            const videoProgress = loaded => {
-              // Keep the aggregate below 100 until R2 has either confirmed
-              // the single PUT or completed the multipart upload.
-              loadedByIndex[index] = Math.min(
-                Math.max(0, file.size - 1),
-                Math.max(0, loaded)
-              );
-              report();
-            };
-
-            if (file.size > 90 * 1024 * 1024) {
-              results[index] = await uploadLargeVideoDirectToR2(
-                file,
-                videoProgress
-              );
-            } else {
-              const uploadData = await getR2VideoUploadUrl(file);
-
-              results[index] = await uploadVideoDirectToR2(
-                file,
-                uploadData,
-                videoProgress
-              );
-            }
-          } else {
-            const signature = await getPostMediaUploadSignature(type);
-
-            results[index] = await uploadFileDirectToCloudinary(
-              file,
-              signature,
-              loaded => {
-                // Sending the final byte is not the same as Cloudinary
-                // finishing the upload. Keep the visible total below 100
-                // until a secure delivery URL has actually been returned.
-                loadedByIndex[index] = Math.min(
-                  Math.max(0, file.size - 1),
-                  Math.max(0, loaded)
-                );
-                report();
-              }
-            );
-          }
-
-          loadedByIndex[index] = file.size;
-          report();
-          lastError = null;
-          break;
-        }catch(error){
-          lastError = error;
-          const status = Number(error?.status || 0);
-          const retryable =
-            status === 0 ||
-            status === 408 ||
-            status === 429 ||
-            status >= 500;
-
-          if(!retryable || attempt >= 2){
-            throw error;
-          }
-
-          loadedByIndex[index] = 0;
-          report();
-          await new Promise(resolve => setTimeout(resolve, 700));
-        }
-      }
-
-      if(lastError){
-        throw lastError;
-      }
-    }
-  }
-
-  const workerCount = Math.min(2, files.length);
-  await Promise.all(
-    Array.from({ length: workerCount }, () => worker())
-  );
-
-  return results;
-}
-
-async function publishUploadedPost({ text = "", media = [] } = {}) {
-  const payload = JSON.stringify({
-    text: String(text || "").trim(),
-    media: Array.isArray(media) ? media : []
-  });
-
-  async function request(endpoint) {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: payload
-    });
-
-    let data = {};
-    try {
-      data = await res.json();
-    } catch {}
-
-    if (!res.ok) {
-      const error = new Error(
-        data?.message || data?.msg || `Post publish failed (${res.status}).`
-      );
-      error.status = res.status;
-      throw error;
-    }
-
-    return data;
-  }
-
-  try {
-    return await request(`${API}/api/posts/direct`);
-  } catch (error) {
-    // Compatibility fallback is only safe when the dedicated route does not exist.
-    // Never retry a 5xx/network failure because the server may already have created
-    // the post and a blind retry could create a duplicate.
-    if (![404, 405].includes(Number(error?.status))) throw error;
-    return request(`${API}/api/posts`);
-  }
-}
-
 async function createPost() {
   if(!requireMember("create posts")) return;
   const textEl = document.getElementById("aiftPostText");
@@ -2424,24 +1765,13 @@ async function createPost() {
       : `${API}/api/posts`;
 
   try {
-    let response;
-
-    if (state.mode === "group" && state.groupId) {
-      response = await api(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + getToken()
-        },
-        body: form
-      });
-    } else {
-      const uploadedMedia = await uploadPostMediaDirect(files, percent => {
-        if (postBtn) postBtn.textContent = `Uploading ${Math.min(99, percent)}%`;
-      });
-
-      if (postBtn) postBtn.textContent = "Publishing...";
-      response = await publishUploadedPost({ text, media: uploadedMedia });
-    }
+    const response = await api(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + getToken()
+      },
+      body: form
+    });
 
     const post = response.post || response;
 
@@ -4156,13 +3486,9 @@ function closeOverlays(clear = true) {
   }
 
   return {
-    uploadBuild: "20260919-r2-multipart-3",
     mount,
     loadMore,
     createPost,
-    uploadPostMediaDirect,
-    publishUploadedPost,
-    getPostMediaType,
     previewComposerMedia,
     updateCarouselDots,
     likePost,
