@@ -1,4 +1,7 @@
 (function(){
+  if(/Android/i.test(navigator.userAgent || "")){
+    document.documentElement.classList.add("aift-android");
+  }
   let lastScroll = 0;
   let ticking = false;
   let sectionLastScroll = 0;
