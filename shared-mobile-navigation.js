@@ -376,8 +376,8 @@
     const goingUp=current<sectionLastScroll-3;
     let nextHidden=sectionChromeHidden;
 
-    if(goingDown&&current>12)nextHidden=true;
-    if(goingUp||current<=8)nextHidden=false;
+    if(goingDown&&current>900)nextHidden=true;
+    if(goingUp||current<120)nextHidden=false;
 
     if(initialFile==="home.html"||initialFile==="network.html"){
       const topbar=document.querySelector(".topbar");
@@ -385,7 +385,7 @@
       topbar?.classList.toggle("is-hidden",nextHidden);
     }
 
-    if(nextHidden!==sectionChromeHidden||current<=8){
+    if(nextHidden!==sectionChromeHidden||current<120){
       sectionChromeHidden=nextHidden;
       window.parent.postMessage({type:"aift:section-scroll",hidden:sectionChromeHidden},location.origin);
     }
@@ -429,12 +429,12 @@
       return;
     }
 
-    if(down && current > 8){
+    if(down && current > 900){
       topbar.classList.add("is-hidden");
       nav.classList.add("aift-mobile-nav--hidden");
     }
 
-    if(up || current <= 8){
+    if(up || current < 120){
       topbar.classList.remove("is-hidden");
       nav.classList.remove("aift-mobile-nav--hidden");
     }
@@ -469,8 +469,8 @@
       return;
     }
 
-    if(current>previous+2&&current>8)nav.classList.add("aift-mobile-nav--hidden");
-    if(current<previous-2||current<=8)nav.classList.remove("aift-mobile-nav--hidden");
+    if(current>previous+2&&current>900)nav.classList.add("aift-mobile-nav--hidden");
+    if(current<previous-2||current<120)nav.classList.remove("aift-mobile-nav--hidden");
   }
 
   window.openMobileComposer = window.openMobileComposer || function(event){
