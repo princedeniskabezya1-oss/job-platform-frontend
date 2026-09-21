@@ -71,18 +71,24 @@
   }
 
   function installCanonicalNavigation(){
-    const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"));
+    const candidates=Array.from(document.querySelectorAll(
+      ".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"
+    ));
     const file=location.pathname.split("/").pop()||"home.html";
-    if(!primaryNavPages.has(file)&&file!=="mobile-shell.html"){
-      document.querySelector(".aift-mobile-nav")?.remove();
-      return;
-    }
-    const nav=document.querySelector(".aift-mobile-nav")||candidates[0]||document.body.appendChild(document.createElement("nav"));
-    candidates.filter(item=>item!==nav).forEach(item=>item.remove());
-    document.querySelectorAll(".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer").forEach(item=>item.remove());
+
+    candidates.forEach(item=>item.remove());
+    document.querySelectorAll(
+      ".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer"
+    ).forEach(item=>item.remove());
+
+    if(!primaryNavPages.has(file)&&file!=="mobile-shell.html") return;
+
+    const nav=document.createElement("nav");
     nav.className="aift-mobile-nav";
+    nav.dataset.aiftSharedBar="old";
     nav.setAttribute("aria-label","Primary mobile navigation");
     nav.innerHTML=canonicalNavigationMarkup();
+    document.body.appendChild(nav);
   }
 
   function setDashboardNavigationHidden(hidden){
