@@ -218,7 +218,9 @@ function saveHiddenComment(commentId){
       search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>`,
       trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>`,
       plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>`,
-      edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path></svg>`
+      edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path></svg>`,
+      volumeOn: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19V5Z"></path><path d="M15 9.5c1 .7 1.5 1.5 1.5 2.5s-.5 1.8-1.5 2.5"></path><path d="M17.8 6.8c1.9 1.5 2.9 3.2 2.9 5.2s-1 3.7-2.9 5.2"></path></svg>`,
+      volumeOff: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19V5Z"></path><path d="m16 9 5 5"></path><path d="m21 9-5 5"></path></svg>`
     };
 
     return icons[name] || "";
@@ -380,9 +382,12 @@ await loadFeed({ reset: true });
     `;
   }
 function updateSoundBadges(){
-  document.querySelectorAll(".aift-video-sound, .aift-reel-sound").forEach(btn => {
-    btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
-    btn.classList.toggle("is-on", !state.globalVideoMuted);
+  document.querySelectorAll(".aift-video-sound, .aift-reel-sound-pop").forEach(btn => {
+    const muted = state.globalVideoMuted;
+    btn.innerHTML = svg(muted ? "volumeOff" : "volumeOn");
+    btn.classList.toggle("is-on", !muted);
+    btn.setAttribute("aria-label", muted ? "Turn sound on" : "Turn sound off");
+    btn.setAttribute("title", muted ? "Turn sound on" : "Turn sound off");
   });
 }
 
@@ -396,7 +401,6 @@ function setAllVideoMuted(muted, sourceBtn = null){
   updateSoundBadges();
 
   document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
-    pop.textContent = muted ? "Muted" : "Sound on";
     pop.classList.remove("show", "is-paused");
   });
 
@@ -522,12 +526,14 @@ modal.style.visibility = "visible";
 
             <div class="aift-reel-gradient"></div>
 
-<div
+<button
+  type="button"
   class="aift-reel-sound-pop"
+  aria-label="${state.globalVideoMuted ? "Turn sound on" : "Turn sound off"}"
   onclick="event.stopPropagation(); AIFTFeed.toggleReelSound(event)"
 >
-  ${state.globalVideoMuted ? "Muted" : "Sound on"}
-</div>
+  ${svg(state.globalVideoMuted ? "volumeOff" : "volumeOn")}
+</button>
 
 <div class="aift-reel-play-indicator"></div>
 
@@ -866,8 +872,8 @@ state.reelActivePostId = postId;
 
 document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
   pop.classList.remove("show", "is-paused");
-  pop.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
 });
+updateSoundBadges();
 
 document.querySelectorAll(".aift-reel-play-indicator").forEach(icon => {
   icon.classList.remove("show");
@@ -1414,10 +1420,11 @@ function restoreFeedScroll(){
 <button
   class="aift-video-sound"
   type="button"
+  aria-label="Turn sound on"
   onpointerdown="event.preventDefault(); event.stopPropagation();"
   onclick="event.preventDefault(); event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(event)"
 >
-  Muted
+  ${svg("volumeOff")}
 </button>
    </div>`
                   : `<img class="aift-post-media" src="${esc(item.url)}" alt="Post media" loading="lazy" />`
