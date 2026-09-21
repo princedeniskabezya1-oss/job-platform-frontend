@@ -211,6 +211,7 @@ function saveHiddenComment(commentId){
       repost: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
       share: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>`,
       save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path></svg>`,
+      eye: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
       more: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>`,
       close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`,
       check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>`,
@@ -796,6 +797,15 @@ modal.style.visibility = "visible";
                 <span>${formatCount(post.sharesCount || 0)}</span>
               </button>
 
+              <div
+                class="aift-reel-view-count"
+                aria-label="${formatCount(post.viewsCount || 0)} views"
+                title="Views"
+              >
+                ${svg("eye")}
+                <span id="aift-reel-view-count-${safeId(post._id)}">${formatCount(post.viewsCount || 0)}</span>
+              </div>
+
               <button
                 id="aift-reel-save-${safeId(post._id)}"
                 onclick="event.stopPropagation(); AIFTFeed.handleReelSave('${esc(post._id)}')"
@@ -1051,6 +1061,10 @@ function observeReelVideos(){
         });
 
 state.reelActivePostId = postId;
+
+if(postId){
+  trackView(postId);
+}
 
 document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
   pop.classList.remove("show", "is-paused");
@@ -3124,8 +3138,17 @@ async function sendSelectedPost(postId) {
   }
 
   function updateViewCount(postId, viewsCount) {
-    const count = document.getElementById(`aift-views-count-${safeId(postId)}`);
-    if (count) count.textContent = String(viewsCount || 0);
+    const value = Math.max(Number(viewsCount || 0), 0);
+    const feedCount = document.getElementById(`aift-views-count-${safeId(postId)}`);
+    const reelCount = document.getElementById(`aift-reel-view-count-${safeId(postId)}`);
+
+    if(feedCount) feedCount.textContent = formatCount(value);
+    if(reelCount) reelCount.textContent = formatCount(value);
+
+    const reelWrap = reelCount?.closest(".aift-reel-view-count");
+    if(reelWrap){
+      reelWrap.setAttribute("aria-label", `${formatCount(value)} views`);
+    }
   }
 
   function updateCommentCount(postId) {
@@ -3168,20 +3191,104 @@ async function sendSelectedPost(postId) {
     state.activeMenuPostId = postId;
     const post = getPost(postId);
     const author = post?.author || {};
-    const canManage = isMine(author._id) || isAdmin();
+    const owner = isMine(author._id);
+    const admin = isAdmin();
 
-    document.getElementById("aiftMenuBody").innerHTML = `
-      <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">${svg("close")}<span>Not interested</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
-      ${
-        canManage
-          ? `<button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>`
-          : `<button class="aift-sheet-option danger" onclick="AIFTFeed.reportPost('${esc(postId)}')">${svg("flag")}<span>Report</span></button>`
-      }
-    `;
+    document.getElementById("aiftMenuBody").innerHTML = owner
+      ? `
+        <button class="aift-sheet-option" onclick="AIFTFeed.openPostEditor('${esc(postId)}')">${svg("edit")}<span>Edit post</span></button>
+        <button class="aift-sheet-option" onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")}<span>Copy post link</span></button>
+        <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
+        <button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>
+      `
+      : admin
+        ? `
+          <button class="aift-sheet-option" onclick="AIFTFeed.openPostEditor('${esc(postId)}')">${svg("edit")}<span>Edit post</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")}<span>Copy post link</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
+          <button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>
+        `
+        : `
+          <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">${svg("close")}<span>Not interested</span></button>
+          <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
+          <button class="aift-sheet-option danger" onclick="AIFTFeed.reportPost('${esc(postId)}')">${svg("flag")}<span>Report</span></button>
+        `;
 
     openOverlay("aiftMenuSheet");
+  }
+
+  function openPostEditor(postId) {
+    const post = getPost(postId);
+    if (!post) return;
+
+    const author = post.author || {};
+    if(!isMine(author._id) && !isAdmin()){
+      toast("You can only edit your own post.", "error");
+      return;
+    }
+
+    const body = document.getElementById("aiftMenuBody");
+    if (!body) return;
+
+    body.innerHTML = `
+      <div class="aift-owner-edit">
+        <strong>Edit post</strong>
+        <textarea id="aiftEditPostText" class="aift-repost-textarea" placeholder="Write your post...">${esc(post.text || "")}</textarea>
+        <div class="aift-owner-edit-actions">
+          <button class="aift-sheet-option" type="button" onclick="AIFTFeed.openPostMenu('${esc(postId)}')">${svg("close")}<span>Cancel</span></button>
+          <button class="aift-primary-btn" type="button" onclick="AIFTFeed.submitPostEdit('${esc(postId)}')">Save changes</button>
+        </div>
+      </div>
+    `;
+
+    requestAnimationFrame(() => {
+      const input = document.getElementById("aiftEditPostText");
+      input?.focus();
+      if(input) input.setSelectionRange(input.value.length, input.value.length);
+    });
+  }
+
+  async function submitPostEdit(postId) {
+    const post = getPost(postId);
+    const author = post?.author || {};
+    if(!post || (!isMine(author._id) && !isAdmin())){
+      toast("You can only edit your own post.", "error");
+      return;
+    }
+
+    const input = document.getElementById("aiftEditPostText");
+    const text = input?.value.trim() || "";
+
+    if(!text){
+      toast("Post text cannot be empty.", "error");
+      return;
+    }
+
+    const saveBtn = document.querySelector("#aiftMenuBody .aift-primary-btn");
+    if(saveBtn){
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+    }
+
+    try{
+      const updated = await api(`${API}/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ text })
+      });
+
+      const nextPost = updated.post || updated;
+      upsertPost(nextPost);
+      closeOverlays();
+      toast("Post updated.");
+    }catch(err){
+      toast(err.message, "error");
+      if(saveBtn){
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save changes";
+      }
+    }
   }
 
 async function savePost(postId) {
@@ -3719,6 +3826,8 @@ replyTo,
     openRepost,
     submitRepost,
     openPostMenu,
+    openPostEditor,
+    submitPostEdit,
     removeComposerMedia,
     savePost,
     openReelMode,
