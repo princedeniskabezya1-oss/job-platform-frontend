@@ -26,6 +26,9 @@ const AIFTFeed = (() => {
     viewedPosts: new Set(),
 globalVideoMuted: true,
 videoObserver: null,
+feedVideoViewportTick: 0,
+feedVideoViewportBound: false,
+pullRefreshInstalled: false,
 reelObserver: null,
 reelActivePostId: null,
 reelScrollY: 0,
@@ -280,6 +283,10 @@ if(!state.guestMode){
 await loadFeed({ reset: true });
     }
 
+    if(state.mode === "home" && !singlePostId){
+      installPullToRefresh();
+    }
+
     window.addEventListener("resize", debounce(() => {
       state.isMobile = window.innerWidth <= 768;
     }, 200));
@@ -411,11 +418,71 @@ function setAllVideoMuted(muted, sourceBtn = null){
   const pop = activeSlide?.querySelector(".aift-reel-sound-pop");
 
   if(pop){
-    pop.textContent = muted ? "Muted" : "Sound on";
     pop.classList.remove("show", "is-paused");
     void pop.offsetWidth;
     pop.classList.add("show");
+    updateSoundBadges();
   }
+}
+
+function playCenteredFeedVideo(){
+  state.feedVideoViewportTick = 0;
+
+  const videos = Array.from(document.querySelectorAll(".aift-feed-video"));
+  if(!videos.length) return;
+
+  if(document.hidden || document.body.classList.contains("aift-reel-open")){
+    videos.forEach(video => video.pause());
+    return;
+  }
+
+  const viewportHeight = Math.max(1, Number(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 1));
+  const viewportWidth = Math.max(1, Number(window.visualViewport?.width || window.innerWidth || document.documentElement.clientWidth || 1));
+  const viewportCenterY = viewportHeight / 2;
+  const viewportCenterX = viewportWidth / 2;
+
+  let winner = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  videos.forEach(video => {
+    const rect = video.getBoundingClientRect();
+    if(rect.width <= 0 || rect.height <= 0) return;
+
+    const visibleHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
+    const visibleWidth = Math.max(0, Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0));
+    const requiredHeight = Math.min(rect.height, Math.max(36, rect.height * 0.2));
+    const requiredWidth = Math.min(rect.width, Math.max(48, rect.width * 0.35));
+
+    if(visibleHeight < requiredHeight || visibleWidth < requiredWidth) return;
+
+    const centerY = rect.top + rect.height / 2;
+    const centerX = rect.left + rect.width / 2;
+    const score = Math.abs(centerY - viewportCenterY) + Math.abs(centerX - viewportCenterX) * 0.2;
+
+    if(score < bestScore){
+      bestScore = score;
+      winner = video;
+    }
+  });
+
+  videos.forEach(video => {
+    if(video !== winner && !video.paused) video.pause();
+  });
+
+  if(!winner) return;
+
+  winner.muted = state.globalVideoMuted;
+  if(winner.paused){
+    winner.play().catch(() => {});
+  }
+}
+
+function scheduleCenteredFeedVideo(){
+  if(state.feedVideoViewportTick) return;
+
+  state.feedVideoViewportTick = requestAnimationFrame(() => {
+    playCenteredFeedVideo();
+  });
 }
 
 function observeFeedVideos(){
@@ -425,27 +492,142 @@ function observeFeedVideos(){
     state.videoObserver.disconnect();
   }
 
-  state.videoObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      const video = entry.target;
-
-      if(entry.isIntersecting && entry.intersectionRatio >= 0.6){
-        document.querySelectorAll(".aift-feed-video").forEach(v => {
-          if(v !== video) v.pause();
-        });
-
-        video.muted = state.globalVideoMuted;
-        video.play().catch(() => {});
-      }else{
-        video.pause();
-      }
-    });
+  state.videoObserver = new IntersectionObserver(() => {
+    scheduleCenteredFeedVideo();
   }, {
-    threshold:[0, .25, .6, .85]
+    threshold:[0, .1, .25, .5, .75, 1]
   });
 
   videos.forEach(video => state.videoObserver.observe(video));
+
+  if(!state.feedVideoViewportBound){
+    state.feedVideoViewportBound = true;
+
+    window.addEventListener("scroll", scheduleCenteredFeedVideo, { passive:true });
+    window.addEventListener("resize", scheduleCenteredFeedVideo, { passive:true });
+    window.visualViewport?.addEventListener("resize", scheduleCenteredFeedVideo, { passive:true });
+    window.visualViewport?.addEventListener("scroll", scheduleCenteredFeedVideo, { passive:true });
+    document.addEventListener("visibilitychange", scheduleCenteredFeedVideo);
+  }
+
   updateSoundBadges();
+  scheduleCenteredFeedVideo();
+}
+
+function resetPullRefreshIndicator(indicator){
+  if(!indicator) return;
+
+  indicator.classList.remove("is-pulling", "is-ready", "is-refreshing");
+  indicator.style.transform = "";
+  indicator.setAttribute("aria-label", "Pull to refresh");
+}
+
+function installPullToRefresh(){
+  if(state.pullRefreshInstalled || !isMobileNow() || state.mode !== "home") return;
+
+  state.pullRefreshInstalled = true;
+
+  let indicator = document.getElementById("aiftPullRefresh");
+
+  if(!indicator){
+    indicator = document.createElement("div");
+    indicator.id = "aiftPullRefresh";
+    indicator.className = "aift-pull-refresh";
+    indicator.setAttribute("role", "status");
+    indicator.setAttribute("aria-live", "polite");
+    indicator.setAttribute("aria-label", "Pull to refresh");
+    indicator.innerHTML = '<span class="aift-pull-refresh-spinner" aria-hidden="true"></span>';
+    document.body.appendChild(indicator);
+  }
+
+  let tracking = false;
+  let startY = 0;
+  let pullDistance = 0;
+  let ready = false;
+
+  const scrollTop = () => Math.max(
+    Number(document.scrollingElement?.scrollTop || 0),
+    Number(window.scrollY || 0),
+    0
+  );
+
+  const blocked = () => (
+    document.body.classList.contains("aift-reel-open") ||
+    document.body.classList.contains("start-post-open") ||
+    Boolean(document.querySelector(".aift-bottom-sheet[aria-hidden=\"false\"], .aift-sheet-backdrop.show"))
+  );
+
+  window.addEventListener("touchstart", event => {
+    if(event.touches.length !== 1 || blocked() || scrollTop() > 1) return;
+
+    tracking = true;
+    startY = event.touches[0].clientY;
+    pullDistance = 0;
+    ready = false;
+    resetPullRefreshIndicator(indicator);
+  }, { passive:true });
+
+  window.addEventListener("touchmove", event => {
+    if(!tracking || event.touches.length !== 1) return;
+
+    if(scrollTop() > 1){
+      tracking = false;
+      resetPullRefreshIndicator(indicator);
+      return;
+    }
+
+    const delta = event.touches[0].clientY - startY;
+
+    if(delta <= 0){
+      pullDistance = 0;
+      ready = false;
+      resetPullRefreshIndicator(indicator);
+      return;
+    }
+
+    pullDistance = Math.min(110, delta * 0.55);
+    ready = pullDistance >= 72;
+
+    indicator.classList.add("is-pulling");
+    indicator.classList.toggle("is-ready", ready);
+    indicator.setAttribute("aria-label", ready ? "Release to refresh" : "Pull to refresh");
+    indicator.style.transform = `translate3d(-50%, ${Math.min(18, -42 + pullDistance * 0.62)}px, 0)`;
+  }, { passive:true });
+
+  const finishPull = () => {
+    if(!tracking) return;
+
+    const shouldRefresh = ready;
+    tracking = false;
+    pullDistance = 0;
+    ready = false;
+
+    if(!shouldRefresh){
+      resetPullRefreshIndicator(indicator);
+      return;
+    }
+
+    indicator.classList.add("is-pulling", "is-refreshing");
+    indicator.classList.remove("is-ready");
+    indicator.style.transform = "translate3d(-50%, 12px, 0)";
+    indicator.setAttribute("aria-label", "Refreshing feed");
+
+    document.querySelectorAll(".aift-feed-video").forEach(video => video.pause());
+    sessionStorage.removeItem("aiftFeedLastPost");
+    sessionStorage.removeItem("aiftFeedPostOffset");
+
+    setTimeout(() => {
+      location.reload();
+    }, 120);
+  };
+
+  window.addEventListener("touchend", finishPull, { passive:true });
+  window.addEventListener("touchcancel", () => {
+    tracking = false;
+    pullDistance = 0;
+    ready = false;
+    resetPullRefreshIndicator(indicator);
+  }, { passive:true });
 }
 
 function getVideoPosts(){
