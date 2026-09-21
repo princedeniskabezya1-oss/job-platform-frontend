@@ -189,6 +189,14 @@ function saveHiddenComment(commentId){
     return following.some(id => String(id) === String(author._id));
   }
 
+  function isFollowRequested(author = {}) {
+    if (!author?._id) return false;
+    if (typeof author.followRequested === "boolean") return author.followRequested;
+
+    const requests = state.me?.followRequestsSent || [];
+    return requests.some(id => String(id?._id || id) === String(author._id));
+  }
+
   async function api(url, options = {}) {
     const res = await fetch(url, options);
     let data = null;
@@ -636,11 +644,30 @@ function getVideoPosts(){
     getMediaItems(post).some(item => item.type === "video")
   );
 }
+function setReelBottomNavHidden(hidden){
+  const nav = document.querySelector(".aift-mobile-nav");
+  if(nav){
+    if(hidden){
+      nav.style.display = "none";
+    }else{
+      nav.style.removeProperty("display");
+    }
+  }
+
+  if(window.parent !== window){
+    window.parent.postMessage({
+      type:"aift:modal-chrome",
+      hidden:Boolean(hidden)
+    }, location.origin);
+  }
+}
+
   function lockReelPageScroll(){
   state.reelScrollY = window.scrollY || document.documentElement.scrollTop || 0;
 
   document.documentElement.classList.add("aift-reel-lock");
   document.body.classList.add("aift-reel-open");
+  setReelBottomNavHidden(true);
 
   document.body.style.position = "fixed";
   document.body.style.top = `-${state.reelScrollY}px`;
@@ -655,6 +682,7 @@ function unlockReelPageScroll(){
 
   document.documentElement.classList.remove("aift-reel-lock");
   document.body.classList.remove("aift-reel-open");
+  setReelBottomNavHidden(false);
 
   document.body.style.position = "";
   document.body.style.top = "";
@@ -691,6 +719,7 @@ modal.style.visibility = "visible";
         const video = getMediaItems(post).find(item => item.type === "video");
         const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
         const commentsCount = countComments(post);
+        const verified = isVerified(author);
 
         return `
           <section
@@ -731,23 +760,29 @@ modal.style.visibility = "visible";
             <div class="aift-reel-info">
 <div class="aift-reel-author">
 
-  <div
+  <button
+    type="button"
     class="aift-reel-author-main"
     onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')"
+    aria-label="Open ${esc(userName(author))} profile"
   >
     <img src="${esc(userAvatar(author))}" alt="">
-    <strong>${esc(userName(author))}</strong>
-  </div>
+    <span class="aift-reel-author-name">
+      <strong>${esc(userName(author))}</strong>
+      ${verified ? `<span class="aift-reel-verified" title="Verified">${svg("check")}</span>` : ""}
+    </span>
+  </button>
 
   ${
-    !isFollowing(author) &&
     String(author._id) !== String(state.meId)
       ? `
       <button
-        class="aift-reel-follow-btn"
+        type="button"
+        class="aift-reel-follow-btn ${isFollowing(author) ? "is-following" : isFollowRequested(author) ? "is-requested" : ""}"
+        data-follow-user="${esc(author._id)}"
         onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
       >
-        Follow
+        ${isFollowing(author) ? "Following" : isFollowRequested(author) ? "Requested" : "Follow"}
       </button>
       `
       : ""
@@ -3385,12 +3420,21 @@ async function toggleFollow(userId) {
   if(!requireMember("follow people")) return;
   if (!userId || isMine(userId)) return;
 
-  const btn = document.getElementById(`aift-follow-${safeId(userId)}`);
+  const feedBtn = document.getElementById(`aift-follow-${safeId(userId)}`);
+  const reelButtons = Array.from(
+    document.querySelectorAll(
+      `.aift-reel-follow-btn[data-follow-user="${CSS.escape(String(userId))}"]`
+    )
+  );
+  const buttons = [feedBtn, ...reelButtons].filter(Boolean);
 
-  if (btn) {
+  buttons.forEach(btn => {
     btn.disabled = true;
     btn.classList.add("is-loading");
-    btn.innerHTML = `<span class="aift-follow-loader"></span><span>Following</span>`;
+  });
+
+  if(feedBtn){
+    feedBtn.innerHTML = `<span class="aift-follow-loader"></span><span>Following</span>`;
   }
 
   try {
@@ -3404,38 +3448,75 @@ async function toggleFollow(userId) {
       data.isFollowing === true ||
       data.status === "followed";
 
-    const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
+    const isRequested =
+      data.requested === true ||
+      data.status === "requested";
 
+    const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
     const next = isNowFollowing
       ? Array.from(new Set([...following, userId]))
       : following.filter(id => String(id) !== String(userId));
 
     localStorage.setItem("followingIds", JSON.stringify(next));
 
+    if(state.me){
+      const meFollowing = (state.me.following || []).map(id => String(id?._id || id));
+      state.me.following = isNowFollowing
+        ? Array.from(new Set([...meFollowing, String(userId)]))
+        : meFollowing.filter(id => String(id) !== String(userId));
+
+      const requests = (state.me.followRequestsSent || []).map(id => String(id?._id || id));
+      state.me.followRequestsSent = isRequested
+        ? Array.from(new Set([...requests, String(userId)]))
+        : requests.filter(id => String(id) !== String(userId));
+    }
+
     state.posts.forEach(post => {
       if (String(post.author?._id) === String(userId)) {
         post.author.isFollowing = isNowFollowing;
+        post.author.followRequested = isRequested;
       }
     });
 
-    if (btn && isNowFollowing) {
-      btn.classList.remove("is-loading");
-      btn.classList.add("is-followed");
-      btn.innerHTML = `<span class="aift-follow-check">${svg("check")}</span><span>Following</span>`;
+    reelButtons.forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("is-loading", "is-requested", "is-following");
+      btn.classList.toggle("is-requested", isRequested);
+      btn.classList.toggle("is-following", isNowFollowing);
+      btn.textContent = isNowFollowing ? "Following" : isRequested ? "Requested" : "Follow";
+    });
+
+    if(feedBtn && isNowFollowing){
+      feedBtn.classList.remove("is-loading");
+      feedBtn.classList.add("is-followed");
+      feedBtn.innerHTML = `<span class="aift-follow-check">${svg("check")}</span><span>Following</span>`;
 
       setTimeout(() => {
         renderFeedOnly();
       }, 900);
-    } else {
+    }else if(feedBtn){
+      feedBtn.disabled = false;
+      feedBtn.classList.remove("is-loading");
       renderFeedOnly();
     }
 
-    toast(isNowFollowing ? "You are now following this profile." : "You unfollowed this profile.");
+    if(data.status === "requested"){
+      toast("Follow request sent.");
+    }else if(data.status === "request_cancelled"){
+      toast("Follow request cancelled.");
+    }else if(data.status === "unfollowed"){
+      toast("You unfollowed this profile.");
+    }else{
+      toast(isNowFollowing ? "You are now following this profile." : "You unfollowed this profile.");
+    }
   } catch (err) {
-    if (btn) {
+    buttons.forEach(btn => {
       btn.disabled = false;
       btn.classList.remove("is-loading");
-      btn.innerHTML = `<span class="aift-follow-plus">+</span><span>Follow</span>`;
+    });
+
+    if(feedBtn){
+      feedBtn.innerHTML = `<span class="aift-follow-plus">+</span><span>Follow</span>`;
     }
 
     toast(err.message, "error");
