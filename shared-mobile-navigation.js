@@ -12,6 +12,10 @@
   const initialFile=location.pathname.split("/").pop()||"home.html";
   const sectionDocument=document.documentElement.classList.contains("aift-section-document");
   const sectionTitles={"home.html":"AIFT | Home","network.html":"AIFT | Network","jobs.html":"AIFT | Jobs","notifications.html":"Notifications | AIFT"};
+  const primaryNavPages=new Set(["home.html","network.html","jobs.html"]);
+  let sectionNavHidden=false;
+  let modalChromeHidden=false;
+  let modalChromeTick=0;
 
   const FALLBACK_AVATAR =
     "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -72,13 +76,91 @@
   function installCanonicalNavigation(){
     const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
-    if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
-    const nav=document.querySelector(".aift-mobile-nav")||candidates[0]||document.body.appendChild(document.createElement("nav"));
-    candidates.filter(item=>item!==nav).forEach(item=>item.remove());
+
+    candidates.forEach(item=>item.remove());
     document.querySelectorAll(".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer").forEach(item=>item.remove());
+
+    if(!primaryNavPages.has(file)&&file!=="mobile-shell.html")return;
+
+    const nav=document.createElement("nav");
     nav.className="aift-mobile-nav";
     nav.setAttribute("aria-label","Primary mobile navigation");
     nav.innerHTML=canonicalNavigationMarkup();
+    document.body.appendChild(nav);
+  }
+
+  function isBlockingModalOpen(){
+    const body=document.body;
+    if(!body)return false;
+
+    const bodyStates=[
+      "start-post-open",
+      "aift-sheet-open",
+      "aift-reel-open",
+      "show-job-filters",
+      "modal-open"
+    ];
+
+    if(bodyStates.some(name=>body.classList.contains(name)))return true;
+
+    return Boolean(document.querySelector([
+      "dialog[open]",
+      '[aria-modal="true"]:not([aria-hidden="true"])',
+      '[role="dialog"][aria-hidden="false"]',
+      ".start-post-backdrop.show",
+      ".guest-gate-backdrop.show",
+      ".job-share-modal.show",
+      ".aift-bottom-sheet.open",
+      ".aift-sheet-backdrop.open",
+      ".aift-reel-modal.show",
+      ".aift-reel-panel.show",
+      ".aift-reel-panel-backdrop.show",
+      '[class*="modal"].show',
+      '[class*="modal"].open',
+      '[class*="backdrop"].show',
+      '[class*="backdrop"].open'
+    ].join(",")));
+  }
+
+  function syncMobileNavVisibility(){
+    const nav=document.querySelector(".aift-mobile-nav");
+    if(!nav)return;
+    nav.style.display=(sectionNavHidden||modalChromeHidden)?"none":"";
+  }
+
+  function updateModalChrome(){
+    modalChromeTick=0;
+    const hidden=isBlockingModalOpen();
+
+    if(sectionDocument){
+      if(parent!==window){
+        parent.postMessage({type:"aift:modal-chrome",hidden},location.origin);
+      }
+      return;
+    }
+
+    modalChromeHidden=hidden;
+    syncMobileNavVisibility();
+  }
+
+  function scheduleModalChromeUpdate(){
+    if(modalChromeTick)return;
+    modalChromeTick=requestAnimationFrame(updateModalChrome);
+  }
+
+  function installModalChromeWatcher(){
+    scheduleModalChromeUpdate();
+
+    const target=document.body||document.documentElement;
+    if(!target)return;
+
+    const observer=new MutationObserver(scheduleModalChromeUpdate);
+    observer.observe(target,{
+      subtree:true,
+      childList:true,
+      attributes:true,
+      attributeFilter:["class","hidden","open","aria-hidden","aria-modal","style"]
+    });
   }
 
   function setDashboardNavigationHidden(hidden){
@@ -199,6 +281,9 @@
   }
 
   function closeSection(){
+    sectionNavHidden=false;
+    modalChromeHidden=false;
+    syncMobileNavVisibility();
     setDashboardNavigationHidden(false);
     document.querySelectorAll(".aift-section-view").forEach(frame=>{
       clearTimeout(frame.__aiftReadyTimer);
@@ -231,6 +316,9 @@
       return;
     }
     const file=url.pathname.split("/").pop()||"home.html";
+    sectionNavHidden=!primaryNavPages.has(file);
+    modalChromeHidden=false;
+    syncMobileNavVisibility();
     setDashboardNavigationHidden(false);
     document.title=sectionTitles[file]||document.title;
     document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
@@ -326,6 +414,13 @@
         nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden || Boolean(event.data.hidden));
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
+        return;
+      }
+      if(event.data?.type==="aift:modal-chrome"){
+        const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current")).find(item=>item.contentWindow===event.source);
+        if(!frame)return;
+        modalChromeHidden=Boolean(event.data.hidden);
+        syncMobileNavVisibility();
         return;
       }
       if(event.data?.type==="aift:learning-chrome"){
@@ -514,14 +609,24 @@
     if(sectionDocument){
       setMobileAvatar();
       installSectionDocumentScroll();
+      installModalChromeWatcher();
       return;
     }
+
     installCanonicalNavigation();
-    document.body.classList.add("aift-mobile-nav-page");
+
+    if(document.querySelector(".aift-mobile-nav")){
+      document.body.classList.add("aift-mobile-nav-page");
+    }else{
+      document.body.classList.remove("aift-mobile-nav-page");
+    }
+
     matchDeviceBottomSurface();
     setMobileAvatar();
     updateActiveMobileNav();
     prepareFastNavigation();
+    installModalChromeWatcher();
+
     if(initialFile==="mobile-shell.html")showSection(shellSectionUrl(),{push:false});
     handleScroll();
 
