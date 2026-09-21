@@ -15,6 +15,7 @@
   const primaryNavPages=new Set(["home.html","network.html","jobs.html"]);
   let sectionNavHidden=false;
   let modalChromeHidden=false;
+  let sectionModalChromeHidden=false;
   let modalChromeTick=0;
 
   const FALLBACK_AVATAR =
@@ -125,7 +126,7 @@
   function syncMobileNavVisibility(){
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
-    nav.style.display=(sectionNavHidden||modalChromeHidden)?"none":"";
+    nav.style.display=(sectionNavHidden||modalChromeHidden||sectionModalChromeHidden)?"none":"";
   }
 
   function updateModalChrome(){
@@ -283,6 +284,7 @@
   function closeSection(){
     sectionNavHidden=false;
     modalChromeHidden=false;
+    sectionModalChromeHidden=false;
     syncMobileNavVisibility();
     setDashboardNavigationHidden(false);
     document.querySelectorAll(".aift-section-view").forEach(frame=>{
@@ -318,6 +320,7 @@
     const file=url.pathname.split("/").pop()||"home.html";
     sectionNavHidden=!primaryNavPages.has(file);
     modalChromeHidden=false;
+    sectionModalChromeHidden=false;
     syncMobileNavVisibility();
     setDashboardNavigationHidden(false);
     document.title=sectionTitles[file]||document.title;
@@ -419,7 +422,7 @@
       if(event.data?.type==="aift:modal-chrome"){
         const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current")).find(item=>item.contentWindow===event.source);
         if(!frame)return;
-        modalChromeHidden=Boolean(event.data.hidden);
+        sectionModalChromeHidden=Boolean(event.data.hidden);
         syncMobileNavVisibility();
         return;
       }
