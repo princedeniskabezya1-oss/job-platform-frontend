@@ -263,6 +263,88 @@
     previewStartPostMedia();
   };
 
+  async function postAPI(path, options = {}){
+    const response = await fetch(getAPI() + path, {
+      ...options,
+      headers: {
+        Authorization: "Bearer " + getToken(),
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...options.headers
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if(!response.ok) throw new Error(data.message || "The upload service could not complete the request.");
+    return data;
+  }
+
+  function sendMedia(url, file, onProgress, fields, headers = {}){
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open(fields ? "POST" : "PUT", url);
+      Object.entries(headers).forEach(([key, value]) => request.setRequestHeader(key, value));
+      request.upload.onprogress = event => {
+        if(event.lengthComputable) onProgress(event.loaded / event.total);
+      };
+      request.onerror = () => reject(new Error("The upload connection failed. Please try again."));
+      request.onload = () => {
+        let result = {};
+        try{ result = JSON.parse(request.responseText); }catch{}
+        if(request.status < 200 || request.status >= 300){
+          reject(new Error(result.error?.message || result.message || "Media upload failed. Please try again."));
+          return;
+        }
+        resolve(result);
+      };
+      if(fields){
+        const body = new FormData();
+        Object.entries(fields).forEach(([key, value]) => body.append(key, value));
+        body.append("file", file);
+        request.send(body);
+      }else{
+        request.send(file);
+      }
+    });
+  }
+
+  async function uploadComposerMedia(files, onProgress){
+    let completed = 0;
+    const total = files.reduce((sum, file) => sum + file.size, 0) || 1;
+    const uploaded = [];
+
+    for(const file of files){
+      const progress = fraction => onProgress(Math.round(100 * (completed + file.size * fraction) / total));
+      if(file.type.startsWith("image/")){
+        const signed = await postAPI("/api/posts/media-upload-signature?type=image");
+        const result = await sendMedia(
+          `https://api.cloudinary.com/v1_1/${encodeURIComponent(signed.cloudName)}/image/upload`,
+          file,
+          progress,
+          { api_key: signed.apiKey, timestamp: signed.timestamp, signature: signed.signature, folder: signed.folder }
+        );
+        if(!result.secure_url) throw new Error("The image upload returned no URL.");
+        uploaded.push({ url: result.secure_url, type: "image" });
+      }else if(file.type.startsWith("video/")){
+        const signed = await postAPI("/api/posts/media-upload-r2-url", {
+          method: "POST",
+          body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size })
+        });
+        await sendMedia(signed.uploadUrl, file, progress, null, { "Content-Type": signed.contentType });
+        if(!signed.publicUrl) throw new Error("The video upload returned no URL.");
+        uploaded.push({ url: signed.publicUrl, type: "video" });
+      }else{
+        throw new Error("Only images and videos are allowed.");
+      }
+      completed += file.size;
+      progress(0);
+    }
+    onProgress(100);
+    return uploaded;
+  }
+
+  async function publishComposerPost(post){
+    return postAPI("/api/posts/direct", { method: "POST", body: JSON.stringify(post) });
+  }
+
   window.submitStartPost = async function(){
     const textEl = document.getElementById("startPostText");
     const mediaEl = document.getElementById("startPostMedia");
@@ -284,16 +366,9 @@
       return;
     }
 
-    if(!window.AIFTFeed?.uploadPostMediaDirect || !window.AIFTFeed?.publishUploadedPost){
-      const hasVideo = files.some(file =>
-        file.type?.startsWith("video/") ||
-        /\.(mp4|mov|m4v|webm|avi|mkv|3gp|3g2|mpeg|mpg|mts|m2ts|ts)$/i.test(file.name || "")
-      );
-
-      if(hasVideo){
-        toast("The current video uploader is not loaded yet. Refresh AIFT and try again.");
-        return;
-      }
+    if(files.length > 10){
+      toast("Choose up to 10 images or videos per post.");
+      return;
     }
 
     try{
@@ -307,11 +382,7 @@
       let uploadedMedia = [];
 
       if(files.length){
-        if(!window.AIFTFeed?.uploadPostMediaDirect){
-          throw new Error("The media uploader is not available. Refresh AIFT and try again.");
-        }
-
-        uploadedMedia = await window.AIFTFeed.uploadPostMediaDirect(files, percent => {
+        uploadedMedia = await uploadComposerMedia(files, percent => {
           const visiblePercent = Math.min(99, Math.max(0, Number(percent) || 0));
 
           if(uploadBar) uploadBar.style.width = visiblePercent + "%";
@@ -333,11 +404,7 @@
 
       btn.textContent = "Publishing...";
 
-      if(!window.AIFTFeed?.publishUploadedPost){
-        throw new Error("The post publisher is not available. Refresh AIFT and try again.");
-      }
-
-      await window.AIFTFeed.publishUploadedPost({
+      await publishComposerPost({
         text,
         media: uploadedMedia
       });
@@ -347,7 +414,7 @@
       resetStartPostModal();
       closeStartPostModal();
 
-      if(document.getElementById("feedMount")){
+      if(document.getElementById("feedMount") && window.AIFTFeed?.mount){
         await window.AIFTFeed.mount("feedMount", {
           mode: "home",
           showComposer: !isGuestUser(),
