@@ -1683,6 +1683,7 @@ function renderOriginalPostCard(original) {
   const author = original.author || {};
   const verified = isVerified(author);
   const followed = isFollowing(author);
+  const requested = isFollowRequested(author);
   const textData = shortText(original.text || "");
 
   return `
@@ -1714,11 +1715,11 @@ function renderOriginalPostCard(original) {
           !state.guestMode && !followed
             ? `
               <button
-                class="aift-follow-btn aift-repost-clean-follow"
+                class="aift-follow-btn aift-repost-clean-follow ${requested ? "is-requested" : ""}"
+                data-follow-user="${esc(author._id)}"
                 onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
               >
-                <span class="aift-follow-plus">+</span>
-                <span>Follow</span>
+                <span>${requested ? "Requested" : "Follow"}</span>
               </button>
             `
             : ""
@@ -1789,6 +1790,7 @@ function shortText(text = ""){
     const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
     const commentsCount = countComments(post);
     const followed = isFollowing(author);
+    const requested = isFollowRequested(author);
     const verified = isVerified(author);
     const canManage = !state.guestMode && (isMine(author._id) || isAdmin());
     const textData = shortText(post.text || "");
@@ -1820,12 +1822,12 @@ function shortText(text = ""){
 ${
   !state.guestMode && !followed
     ? `<button
-        class="aift-follow-btn"
+        class="aift-follow-btn ${requested ? "is-requested" : ""}"
         id="aift-follow-${safeId(author._id)}"
+        data-follow-user="${esc(author._id)}"
         onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
       >
-        <span class="aift-follow-plus">+</span>
-        <span>Follow</span>
+        <span>${requested ? "Requested" : "Follow"}</span>
       </button>`
     : ""
 }
@@ -3420,22 +3422,27 @@ async function toggleFollow(userId) {
   if(!requireMember("follow people")) return;
   if (!userId || isMine(userId)) return;
 
-  const feedBtn = document.getElementById(`aift-follow-${safeId(userId)}`);
-  const reelButtons = Array.from(
+  const escapedUserId = CSS.escape(String(userId));
+  const feedButtons = Array.from(
     document.querySelectorAll(
-      `.aift-reel-follow-btn[data-follow-user="${CSS.escape(String(userId))}"]`
+      `.aift-follow-btn:not(.aift-reel-follow-btn)[data-follow-user="${escapedUserId}"]`
     )
   );
-  const buttons = [feedBtn, ...reelButtons].filter(Boolean);
+  const reelButtons = Array.from(
+    document.querySelectorAll(
+      `.aift-reel-follow-btn[data-follow-user="${escapedUserId}"]`
+    )
+  );
+  const buttons = [...feedButtons, ...reelButtons];
 
   buttons.forEach(btn => {
     btn.disabled = true;
     btn.classList.add("is-loading");
   });
 
-  if(feedBtn){
-    feedBtn.innerHTML = `<span class="aift-follow-loader"></span><span>Following</span>`;
-  }
+  feedButtons.forEach(btn => {
+    btn.innerHTML = `<span class="aift-follow-loader"></span><span>Following</span>`;
+  });
 
   try {
     const data = await api(`${API}/api/users/${userId}/follow`, {
@@ -3486,17 +3493,27 @@ async function toggleFollow(userId) {
       btn.textContent = isNowFollowing ? "Following" : isRequested ? "Requested" : "Follow";
     });
 
-    if(feedBtn && isNowFollowing){
-      feedBtn.classList.remove("is-loading");
-      feedBtn.classList.add("is-followed");
-      feedBtn.innerHTML = `<span class="aift-follow-check">${svg("check")}</span><span>Following</span>`;
+    if(isRequested){
+      feedButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove("is-loading", "is-followed");
+        btn.classList.add("is-follow-animated");
+        btn.innerHTML = '<span class="aift-follow-check" aria-hidden="true">✓</span><span>Requested</span>';
+      });
 
-      setTimeout(() => {
-        renderFeedOnly();
-      }, 900);
-    }else if(feedBtn){
-      feedBtn.disabled = false;
-      feedBtn.classList.remove("is-loading");
+      await new Promise(resolve => setTimeout(resolve, 520));
+      renderFeedOnly();
+    }else if(isNowFollowing){
+      feedButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove("is-loading", "is-follow-animated", "is-requested");
+        btn.classList.add("is-followed");
+        btn.innerHTML = `<span class="aift-follow-check">${svg("check")}</span><span>Following</span>`;
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 520));
+      renderFeedOnly();
+    }else{
       renderFeedOnly();
     }
 
@@ -3512,12 +3529,12 @@ async function toggleFollow(userId) {
   } catch (err) {
     buttons.forEach(btn => {
       btn.disabled = false;
-      btn.classList.remove("is-loading");
+      btn.classList.remove("is-loading", "is-follow-animated", "is-followed");
     });
 
-    if(feedBtn){
-      feedBtn.innerHTML = `<span class="aift-follow-plus">+</span><span>Follow</span>`;
-    }
+    feedButtons.forEach(btn => {
+      btn.innerHTML = "<span>Follow</span>";
+    });
 
     toast(err.message, "error");
   }
