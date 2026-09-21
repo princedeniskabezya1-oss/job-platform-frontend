@@ -12,6 +12,7 @@
   const initialFile=location.pathname.split("/").pop()||"home.html";
   const sectionDocument=document.documentElement.classList.contains("aift-section-document");
   const sectionTitles={"home.html":"AIFT | Home","network.html":"AIFT | Network","jobs.html":"AIFT | Jobs","notifications.html":"Notifications | AIFT"};
+  const primaryNavPages=new Set(["home.html","network.html","jobs.html"]);
 
   const FALLBACK_AVATAR =
     "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -72,7 +73,10 @@
   function installCanonicalNavigation(){
     const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
-    if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
+    if(!primaryNavPages.has(file)&&file!=="mobile-shell.html"){
+      document.querySelector(".aift-mobile-nav")?.remove();
+      return;
+    }
     const nav=document.querySelector(".aift-mobile-nav")||candidates[0]||document.body.appendChild(document.createElement("nav"));
     candidates.filter(item=>item!==nav).forEach(item=>item.remove());
     document.querySelectorAll(".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer").forEach(item=>item.remove());
@@ -134,6 +138,7 @@
         "register.html",
         "account-access.html",
         "privacy-policy.html",
+        "notifications.html",
         "careers.html",
         "contact.html",
         "public-profile.html",
@@ -188,19 +193,13 @@
   function sectionBounds({revealNavigation=false}={}){
     const nav=document.querySelector(".aift-mobile-nav");
     if(revealNavigation)nav?.classList.remove("aift-mobile-nav--hidden");
-    const viewportHeight=Math.round(window.visualViewport?.height||innerHeight);
-    const bottom=0;
-    return {
-      top:0,
-      bottom,
-      height:Math.max(1,viewportHeight-bottom)
-    };
+    return {top:0,bottom:0};
   }
 
   function sizeSectionElement(element,bounds){
     element.style.top=`${bounds.top}px`;
     element.style.bottom=`${bounds.bottom}px`;
-    element.style.height=`${bounds.height}px`;
+    element.style.height="auto";
   }
 
   function closeSection(){
@@ -236,7 +235,7 @@
       return;
     }
     const file=url.pathname.split("/").pop()||"home.html";
-    setDashboardNavigationHidden(false);
+    setDashboardNavigationHidden(!primaryNavPages.has(file));
     document.title=sectionTitles[file]||document.title;
     document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
       const href=item.getAttribute("href");
@@ -328,7 +327,7 @@
           return;
         }
         const nav=document.querySelector(".aift-mobile-nav");
-        nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden || Boolean(event.data.hidden));
+        nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden);
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;
@@ -357,13 +356,6 @@
       [...frames,wait].filter(Boolean).forEach(element=>sizeSectionElement(element,bounds));
     },{passive:true});
 
-    window.visualViewport?.addEventListener("resize",()=>{
-      const frames=Array.from(document.querySelectorAll(".aift-section-view"));
-      const wait=document.querySelector(".aift-section-wait");
-      if(!frames.length&&!wait)return;
-      const bounds=sectionBounds();
-      [...frames,wait].filter(Boolean).forEach(element=>sizeSectionElement(element,bounds));
-    },{passive:true});
   }
 
   function handleSectionDocumentScroll(){
@@ -387,7 +379,7 @@
 
     if(nextHidden!==sectionChromeHidden||current<=8){
       sectionChromeHidden=nextHidden;
-      window.parent.postMessage({type:"aift:section-scroll",hidden:sectionChromeHidden},location.origin);
+      window.parent.postMessage({type:"aift:section-scroll",hidden:false},location.origin);
     }
     sectionLastScroll=current;
   }
@@ -423,17 +415,8 @@
 
     topbar.classList.toggle("is-glass", current > 20);
 
-    if(down && current > 8){
-      topbar.classList.add("is-hidden");
-      nav.classList.add("aift-mobile-nav--hidden");
-    }
-
-    if(up || current <= 8){
-      topbar.classList.remove("is-hidden");
-      if(!composerChromeHidden){
-        nav.classList.remove("aift-mobile-nav--hidden");
-      }
-    }
+    if(down && current > 8) topbar.classList.add("is-hidden");
+    if(up || current <= 8) topbar.classList.remove("is-hidden");
 
     lastScroll = current;
   }
@@ -458,8 +441,8 @@
     nestedScrollPositions.set(target,current);
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
-    if(current>previous+2&&current>8)nav.classList.add("aift-mobile-nav--hidden");
-    if((current<previous-2||current<=8)&&!composerChromeHidden)nav.classList.remove("aift-mobile-nav--hidden");
+    if(!primaryNavPages.has(initialFile)&&initialFile!=="mobile-shell.html")return;
+    if(!composerChromeHidden)nav.classList.remove("aift-mobile-nav--hidden");
   }
 
   window.openMobileComposer = window.openMobileComposer || function(event){
@@ -529,7 +512,7 @@
       return;
     }
     installCanonicalNavigation();
-    document.body.classList.add("aift-mobile-nav-page");
+    if(document.querySelector(".aift-mobile-nav"))document.body.classList.add("aift-mobile-nav-page");
     matchDeviceBottomSurface();
     setMobileAvatar();
     updateActiveMobileNav();
