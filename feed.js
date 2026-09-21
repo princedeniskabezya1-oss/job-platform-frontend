@@ -2319,7 +2319,6 @@ const comments = (post.comments || []).filter(comment =>
                 <span class="aift-fb-name">${esc(userName(user))}</span>
                 ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
               </div>
-              <div class="aift-fb-sub">${esc(userSub(user))}</div>
               <div class="aift-fb-text">${esc(comment.text)}</div>
             </div>
 
