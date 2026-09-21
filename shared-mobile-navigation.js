@@ -335,7 +335,7 @@
           return;
         }
         const nav=document.querySelector(".aift-mobile-nav");
-        nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden);
+        nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden || Boolean(event.data.hidden));
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;
@@ -387,7 +387,7 @@
 
     if(nextHidden!==sectionChromeHidden||current<=8){
       sectionChromeHidden=nextHidden;
-      window.parent.postMessage({type:"aift:section-scroll",hidden:false},location.origin);
+      window.parent.postMessage({type:"aift:section-scroll",hidden:sectionChromeHidden},location.origin);
     }
     sectionLastScroll=current;
   }
@@ -423,8 +423,21 @@
 
     topbar.classList.toggle("is-glass", current > 20);
 
-    if(down && current > 8) topbar.classList.add("is-hidden");
-    if(up || current <= 8) topbar.classList.remove("is-hidden");
+    if(composerChromeHidden){
+      nav.classList.add("aift-mobile-nav--hidden");
+      lastScroll = current;
+      return;
+    }
+
+    if(down && current > 8){
+      topbar.classList.add("is-hidden");
+      nav.classList.add("aift-mobile-nav--hidden");
+    }
+
+    if(up || current <= 8){
+      topbar.classList.remove("is-hidden");
+      nav.classList.remove("aift-mobile-nav--hidden");
+    }
 
     lastScroll = current;
   }
@@ -450,7 +463,14 @@
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
     if(!primaryNavPages.has(initialFile)&&initialFile!=="mobile-shell.html")return;
-    if(!composerChromeHidden)nav.classList.remove("aift-mobile-nav--hidden");
+
+    if(composerChromeHidden){
+      nav.classList.add("aift-mobile-nav--hidden");
+      return;
+    }
+
+    if(current>previous+2&&current>8)nav.classList.add("aift-mobile-nav--hidden");
+    if(current<previous-2||current<=8)nav.classList.remove("aift-mobile-nav--hidden");
   }
 
   window.openMobileComposer = window.openMobileComposer || function(event){
