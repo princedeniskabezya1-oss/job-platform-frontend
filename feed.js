@@ -397,6 +397,42 @@ await loadFeed({ reset: true });
       </section>
     `;
   }
+function syncActiveVideoSoundIcons(){
+  document.querySelectorAll(".aift-video-sound").forEach(btn => {
+    const video = btn.closest(".aift-video-wrap")?.querySelector(".aift-feed-video");
+    const active = Boolean(
+      video &&
+      !video.paused &&
+      !video.ended &&
+      !document.hidden &&
+      !document.body.classList.contains("aift-reel-open")
+    );
+    btn.classList.toggle("is-active-video", active);
+  });
+
+  document.querySelectorAll(".aift-reel-sound-pop").forEach(btn => {
+    const slide = btn.closest(".aift-reel-slide");
+    const video = slide?.querySelector(".aift-reel-video");
+    const active = Boolean(
+      video &&
+      !video.paused &&
+      !video.ended &&
+      document.body.classList.contains("aift-reel-open") &&
+      String(slide?.dataset.postId || "") === String(state.reelActivePostId || "")
+    );
+    btn.classList.toggle("is-active-video", active);
+  });
+}
+
+function bindSoundIconPlaybackState(video){
+  if(!video || video.dataset.aiftSoundIconBound === "1") return;
+
+  video.dataset.aiftSoundIconBound = "1";
+  ["play", "playing", "pause", "ended", "emptied"].forEach(type => {
+    video.addEventListener(type, syncActiveVideoSoundIcons);
+  });
+}
+
 function updateSoundBadges(){
   document.querySelectorAll(".aift-video-sound, .aift-reel-sound-pop").forEach(btn => {
     const muted = state.globalVideoMuted;
@@ -405,6 +441,7 @@ function updateSoundBadges(){
     btn.setAttribute("aria-label", muted ? "Turn sound on" : "Turn sound off");
     btn.setAttribute("title", muted ? "Turn sound on" : "Turn sound off");
   });
+  syncActiveVideoSoundIcons();
 }
 
 function setAllVideoMuted(muted, sourceBtn = null){
@@ -507,7 +544,10 @@ function observeFeedVideos(){
     threshold:[0, .1, .25, .5, .75, 1]
   });
 
-  videos.forEach(video => state.videoObserver.observe(video));
+  videos.forEach(video => {
+    bindSoundIconPlaybackState(video);
+    state.videoObserver.observe(video);
+  });
 
   if(!state.feedVideoViewportBound){
     state.feedVideoViewportBound = true;
@@ -699,6 +739,7 @@ function openReelMode(postId){
   if(!videos.length) return;
 
   document.querySelectorAll(".aift-feed-video").forEach(v => v.pause());
+  syncActiveVideoSoundIcons();
 
   let modal = document.getElementById("aiftReelViewer");
 
@@ -1017,6 +1058,7 @@ function closeReelMode(){
     v.pause();
     v.currentTime = 0;
   });
+  syncActiveVideoSoundIcons();
 
   if(state.reelObserver){
     state.reelObserver.disconnect();
@@ -1121,7 +1163,12 @@ video.play().catch(() => {});
     threshold:[0, .5, .75, 1]
   });
 
-  videos.forEach(video => state.reelObserver.observe(video));
+  videos.forEach(video => {
+    bindSoundIconPlaybackState(video);
+    state.reelObserver.observe(video);
+  });
+
+  syncActiveVideoSoundIcons();
 }
  async function handleReelLike(postId){
   saveReelPosition(postId);
