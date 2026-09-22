@@ -327,6 +327,8 @@ a{
   border-radius:12px;
   box-shadow:0 18px 40px rgba(15,23,42,.14);
   overflow:hidden;
+  max-height:min(70vh,560px);
+  overflow-y:auto;
   z-index:2000;
 }
 
@@ -1839,8 +1841,10 @@ async function loadNotificationBadge(){
     let searchTimer = null;
 let searchResults = {
   users: [],
-  jobs: []
+  jobs: [],
+  posts: []
 };
+let searchRequest = 0;
 
 function userProfileUrl(user){
   const id = user?._id || user?.id;
@@ -1864,7 +1868,7 @@ if(r === "school"){
     return `agent-public-profile.html?id=${id}`;
   }
 
-  return `student-public-profile.html?id=${id}`;
+  return `public-profile.html?id=${encodeURIComponent(id)}`;
 }
 
 function openSearchPanel(){
@@ -1875,6 +1879,7 @@ function openSearchPanel(){
 }
 
 function clearGlobalSearch(){
+  searchRequest++;
   const input = document.getElementById("globalSearchInput");
   const panel = document.getElementById("globalSearchPanel");
   const clear = document.getElementById("globalSearchClear");
@@ -1896,6 +1901,7 @@ function handleGlobalSearchInput(event){
   clearTimeout(searchTimer);
 
   if(q.length < 2){
+    searchRequest++;
     renderSearchPanel("", [], []);
     return;
   }
@@ -1910,7 +1916,8 @@ function handleGlobalSearchKey(event){
 
   if(event.key === "Enter" && q){
     event.preventDefault();
-    location.href = `network.html?search=${encodeURIComponent(q)}`;
+    clearTimeout(searchTimer);
+    runGlobalSearch(q);
   }
 
   if(event.key === "Escape"){
@@ -1919,43 +1926,22 @@ function handleGlobalSearchKey(event){
 }
 
 async function runGlobalSearch(q){
+  const request = ++searchRequest;
   try{
-    const [usersData, jobsData] = await Promise.allSettled([
-      api(`/api/users/network?search=${encodeURIComponent(q)}&limit=5`, {
-        headers: headers()
-      }),
-      api(`/api/jobs?search=${encodeURIComponent(q)}&limit=5`, {
-        headers: headers()
-      })
-    ]);
-
-    const users =
-      usersData.status === "fulfilled"
-        ? (
-            Array.isArray(usersData.value)
-              ? usersData.value
-              : usersData.value.users || usersData.value.results || []
-          )
-        : [];
-
-    const jobs =
-      jobsData.status === "fulfilled"
-        ? (
-            Array.isArray(jobsData.value)
-              ? jobsData.value
-              : jobsData.value.jobs || jobsData.value.results || []
-          )
-        : [];
-
-    searchResults = { users, jobs };
-    renderSearchPanel(q, users, jobs);
+    const data = await api(`/api/users/network/search?q=${encodeURIComponent(q)}`);
+    if(request !== searchRequest || document.getElementById("globalSearchInput")?.value.trim() !== q) return;
+    const users = (data.users || []).filter(user => String(user.role || "").toLowerCase() !== "admin");
+    const jobs = data.jobs || [];
+    const posts = data.posts || [];
+    searchResults = { users, jobs, posts };
+    renderSearchPanel(q, users, jobs, posts);
 
   }catch(err){
-    renderSearchPanel(q, [], []);
+    if(request === searchRequest) renderSearchPanel(q, [], [], []);
   }
 }
 
-function renderSearchPanel(q, users, jobs){
+function renderSearchPanel(q, users, jobs, posts=[]){
   const panel = document.getElementById("globalSearchPanel");
   if(!panel) return;
 
@@ -1967,7 +1953,7 @@ function renderSearchPanel(q, users, jobs){
 
   const userHtml = users.slice(0,5).map(user => `
     <button class="search-result" onclick="location.href='${userProfileUrl(user)}'">
-      <img src="${user.profileImage || FALLBACK_AVATAR}" alt="">
+      <img src="${escapeHtml(user.profileImage || FALLBACK_AVATAR)}" alt="">
       <span>
         <strong>${escapeHtml(user.companyName || user.schoolName || user.name || "AIFT User")}</strong>
         <span>${escapeHtml(user.headline || user.profession || user.role || "Profile")}</span>
@@ -1977,10 +1963,20 @@ function renderSearchPanel(q, users, jobs){
 
   const jobHtml = jobs.slice(0,5).map(job => `
     <button class="search-result" onclick="location.href='jobs.html?job=${job._id || job.id}'">
-      <img src="${job.companyLogo || job.logo || FALLBACK_AVATAR}" alt="">
+      <img src="${escapeHtml(job.companyLogo || job.logo || FALLBACK_AVATAR)}" alt="">
       <span>
         <strong>${escapeHtml(job.title || "Job opportunity")}</strong>
         <span>${escapeHtml(job.companyName || job.company || job.location || "AIFT Job")}</span>
+      </span>
+    </button>
+  `).join("");
+
+  const postHtml = posts.slice(0,5).map(post => `
+    <button class="search-result" onclick="location.href='home.html?post=${encodeURIComponent(post._id)}'">
+      <img src="${escapeHtml(post.author?.profileImage || FALLBACK_AVATAR)}" alt="">
+      <span>
+        <strong>${escapeHtml(post.author?.name || "Post")}</strong>
+        <span>${escapeHtml((post.text || "Post with media").slice(0,120))}</span>
       </span>
     </button>
   `).join("");
@@ -2004,8 +2000,10 @@ function renderSearchPanel(q, users, jobs){
         : ""
     }
 
+    ${posts.length ? `<div class="search-section"><p class="search-section-title">Posts</p>${postHtml}</div>` : ""}
+
     ${
-      !users.length && !jobs.length
+      !users.length && !jobs.length && !posts.length
         ? `<div class="search-empty">No results found for "${escapeHtml(q)}"</div>`
         : ""
     }
