@@ -401,6 +401,8 @@
         composerChromeHidden=Boolean(event.data.hidden);
 
         if(!composerChromeHidden){
+          sectionNavHidden=false;
+          modalChromeHidden=false;
           sectionModalChromeHidden=false;
         }
 
@@ -408,10 +410,13 @@
 
         if(!composerChromeHidden){
           const nav=document.querySelector(".aift-mobile-nav");
+          document.body.classList.remove("aift-employer-dashboard-active");
+          document.body.style.removeProperty("padding-bottom");
           nav?.classList.remove(
             "aift-mobile-nav--dashboard-hidden",
             "aift-mobile-nav--hidden"
           );
+          nav?.style.removeProperty("display");
           syncMobileNavVisibility();
         }
 
