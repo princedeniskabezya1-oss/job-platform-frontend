@@ -6208,17 +6208,19 @@ function setupOwnerButtons(){
     ? state.viewer.followRequestsSent
     : [];
 
+  const relationId=item=>String(item?._id || item?.id || item?.userId || item || "");
+
   const isFollowingSchool=Boolean(
     viewerId &&
     (
       schoolFollowers.includes(String(viewerId)) ||
-      window.AIFTFollowFeedback?.hasRelation(viewerFollowing,pageSchoolId)
+      viewerFollowing.some(item=>relationId(item)===String(pageSchoolId))
     )
   );
 
   const isRequestedSchool=Boolean(
     !isFollowingSchool &&
-    window.AIFTFollowFeedback?.hasRelation(viewerRequests,pageSchoolId)
+    viewerRequests.some(item=>relationId(item)===String(pageSchoolId))
   );
 
   const followLabel=isFollowingSchool ? "Following" : isRequestedSchool ? "Requested" : "Follow";
