@@ -2373,6 +2373,9 @@ const goDashboard =
 
       }
 
+      const buttons=[followBtn,desktopFollowBtn].filter(Boolean);
+      const wasFollowing=buttons.some(button=>button.textContent.trim()==="Following");
+      window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
 
       try{
 
@@ -2402,45 +2405,44 @@ const goDashboard =
 
         }
 
+        const isRequested=
+          data.requested===true ||
+          data.status==="requested";
 
-        const isNowFollowing =
-          Boolean(
-            data.following
-          );
+        const isNowFollowing=
+          data.following===true ||
+          data.isFollowing===true ||
+          data.status==="followed";
 
+        const currentViewerId=String(
+          viewerId ||
+          state.viewer?._id ||
+          localStorage.getItem("userId") ||
+          ""
+        );
 
-        if(followBtn){
-
-          followBtn.textContent =
-            isNowFollowing
-              ? "Following"
-              : "Follow";
-
-
-          followBtn.classList.toggle(
-            "hidden",
-            isNowFollowing
-          );
-
+        if(currentViewerId){
+          const followers=Array.isArray(user.followers) ? [...user.followers] : [];
+          user.followers=isNowFollowing
+            ? followers.some(item=>String(item?._id || item)===currentViewerId)
+              ? followers
+              : [...followers,currentViewerId]
+            : followers.filter(item=>String(item?._id || item)!==currentViewerId);
         }
 
-
-        if(desktopFollowBtn){
-
-          desktopFollowBtn.textContent =
-            isNowFollowing
-              ? "Following"
-              : "Follow";
-
-
-          desktopFollowBtn.classList.toggle(
-            "hidden",
-            isNowFollowing
-          );
-
+        if(window.AIFTFollowFeedback){
+          await window.AIFTFollowFeedback.confirm(buttons,{
+            following:isNowFollowing,
+            requested:isRequested
+          });
+        }else{
+          const text=isRequested ? "Requested" : isNowFollowing ? "Following" : "Follow";
+          buttons.forEach(button=>button.textContent=text);
         }
 
       }catch(error){
+
+        window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
 
         console.error(
           "Student follow error:",
@@ -2720,25 +2722,16 @@ if(isMobile){
     );
 
 
-  if(
-    isLoggedIn &&
-    !alreadyFollowing
-  ){
+  if(isLoggedIn){
+    const followLabel=alreadyFollowing ? "Following" : "Follow";
 
     if(isMobile){
-
-      followBtn?.classList.remove(
-        "hidden"
-      );
-
+      followBtn?.classList.remove("hidden");
+      if(followBtn) followBtn.textContent=followLabel;
     }else{
-
-      desktopFollowBtn?.classList.remove(
-        "hidden"
-      );
-
+      desktopFollowBtn?.classList.remove("hidden");
+      if(desktopFollowBtn) desktopFollowBtn.textContent=followLabel;
     }
-
   }
 
 }
@@ -3242,32 +3235,6 @@ async function copyProfileLinkOnly(){
   }
 }
 
-document.getElementById("followAgentBtn").addEventListener("click",async()=>{
-  if(!profileId || !token){
-    location.href = "login.html";
-    return;
-  }
-
-  try{
-    const res = await fetch(`${API}/api/users/${profileId}/follow`,{
-      method:"PATCH",
-      headers:authHeaders()
-    });
-
-    const data = await res.json();
-
-    if(!res.ok){
-      throw new Error(data.message || "Follow failed");
-    }
-
-    document.getElementById("followAgentBtn").textContent =
-      data.following ? "Following" : "Follow";
-
-  }catch(err){
-    alert(err.message);
-  }
-});
-
 function mountStudentFeed(){
   if(typeof AIFTFeed === "undefined") return;
 
@@ -3672,5 +3639,6 @@ init();
   window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
+<script src="aift-follow-feedback.js?v=20260922-1"></script>
 </body>
 </html>
