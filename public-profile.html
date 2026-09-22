@@ -2519,20 +2519,33 @@ function setupButtons(user){
   const viewerId=state.viewer?._id || state.viewer?.id || localStorage.getItem("userId");
   const profileUserId=user?._id || user?.id || profileId;
   const viewerFollowing=Array.isArray(state.viewer?.following)
-    ? state.viewer.following.map(item=>String(item?._id || item?.id || item))
+    ? state.viewer.following
+    : [];
+  const viewerRequests=Array.isArray(state.viewer?.followRequestsSent)
+    ? state.viewer.followRequestsSent
     : [];
   const profileFollowers=Array.isArray(user?.followers)
-    ? user.followers.map(item=>String(item?._id || item?.id || item))
+    ? user.followers
     : [];
   const alreadyFollowing=Boolean(
     viewerId &&
     (
-      viewerFollowing.includes(String(profileUserId)) ||
-      profileFollowers.includes(String(viewerId))
+      window.AIFTFollowFeedback?.hasRelation(viewerFollowing,profileUserId) ||
+      window.AIFTFollowFeedback?.hasRelation(profileFollowers,viewerId)
     )
   );
+  const alreadyRequested=Boolean(
+    !alreadyFollowing &&
+    window.AIFTFollowFeedback?.hasRelation(viewerRequests,profileUserId)
+  );
   [followBtn,mobileFollowBtn].forEach(button=>{
-    if(button) button.textContent=alreadyFollowing ? "Following" : "Follow";
+    if(button){
+      button.textContent=alreadyFollowing
+        ? "Following"
+        : alreadyRequested
+          ? "Requested"
+          : "Follow";
+    }
   });
 
 const shareProfile = () => {
@@ -2555,7 +2568,9 @@ const shareProfile = () => {
     }
 
     const buttons=[followBtn,mobileFollowBtn].filter(Boolean);
-    const wasFollowing=buttons.some(button=>button.textContent.trim()==="Following");
+    const currentLabel=buttons[0]?.textContent.trim() || "Follow";
+    const wasFollowing=currentLabel==="Following";
+    const wasRequested=currentLabel==="Requested";
     window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
 
     try{
@@ -2576,6 +2591,21 @@ const shareProfile = () => {
         data.isFollowing===true ||
         data.status==="followed";
 
+      window.AIFTFollowFeedback?.syncViewer(
+        state.viewer,
+        profileUserId,
+        {following:isNowFollowing,requested:isRequested}
+      );
+
+      if(viewerId && Array.isArray(user.followers)){
+        const existing=[...user.followers];
+        user.followers=isNowFollowing
+          ? window.AIFTFollowFeedback?.hasRelation(existing,viewerId)
+            ? existing
+            : [...existing,viewerId]
+          : existing.filter(item=>window.AIFTFollowFeedback?.relationId(item)!==String(viewerId));
+      }
+
       if(window.AIFTFollowFeedback){
         await window.AIFTFollowFeedback.confirm(buttons,{
           following:isNowFollowing,
@@ -2587,7 +2617,10 @@ const shareProfile = () => {
       }
 
     }catch(err){
-      window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
+      window.AIFTFollowFeedback?.reset(buttons,{
+        following:wasFollowing,
+        requested:wasRequested
+      });
       alert(err.message);
     }
   };
