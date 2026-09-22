@@ -30,11 +30,6 @@
         border-color:#0095f6!important;
         color:#fff!important;
       }
-      .aift-follow-feedback-unfollowed{
-        background:#f8fafc!important;
-        border-color:#cbd5e1!important;
-        color:#475569!important;
-      }
       .aift-follow-feedback-check{
         display:inline-grid;
         place-items:center;
@@ -72,8 +67,7 @@
     button.classList.remove(
       "aift-follow-feedback-pop",
       "aift-follow-feedback-followed",
-      "aift-follow-feedback-requested",
-      "aift-follow-feedback-unfollowed"
+      "aift-follow-feedback-requested"
     );
   }
 
@@ -103,13 +97,16 @@
 
     const following=state.following===true;
     const requested=state.requested===true;
-    const unfollowed=!following && !requested;
-    const transientLabel=requested ? "Requested" : following ? "Following" : "Unfollowed";
+
+    if(!following && !requested){
+      reset(buttons,{following:false,requested:false});
+      return {following:false,requested:false};
+    }
+
+    const transientLabel=requested ? "Requested" : "Following";
     const tone=requested
       ? "aift-follow-feedback-requested"
-      : following
-        ? "aift-follow-feedback-followed"
-        : "aift-follow-feedback-unfollowed";
+      : "aift-follow-feedback-followed";
 
     list(buttons).forEach(button=>{
       button.disabled=false;
@@ -127,7 +124,46 @@
       button.dataset.aiftFollowOriginalLabel=labelFor({following,requested});
     });
 
-    return {following,requested,unfollowed};
+    return {following,requested};
+  }
+
+  function relationId(item){
+    return String(
+      item?._id ||
+      item?.id ||
+      item?.userId ||
+      item ||
+      ""
+    );
+  }
+
+  function hasRelation(items,userId){
+    const target=String(userId||"");
+    if(!target) return false;
+    return Array.isArray(items) && items.some(item=>relationId(item)===target);
+  }
+
+  function syncViewer(viewer,userId,state={}){
+    if(!viewer || !userId) return;
+
+    const target=String(userId);
+    const following=state.following===true;
+    const requested=state.requested===true;
+
+    const nextFollowing=Array.isArray(viewer.following) ? [...viewer.following] : [];
+    const nextRequests=Array.isArray(viewer.followRequestsSent) ? [...viewer.followRequestsSent] : [];
+
+    viewer.following=following
+      ? hasRelation(nextFollowing,target)
+        ? nextFollowing
+        : [...nextFollowing,target]
+      : nextFollowing.filter(item=>relationId(item)!==target);
+
+    viewer.followRequestsSent=requested
+      ? hasRelation(nextRequests,target)
+        ? nextRequests
+        : [...nextRequests,target]
+      : nextRequests.filter(item=>relationId(item)!==target);
   }
 
   function reset(buttons,state={}){
@@ -145,6 +181,9 @@
     setLoading,
     confirm,
     reset,
-    labelFor
+    labelFor,
+    relationId,
+    hasRelation,
+    syncViewer
   };
 })();
