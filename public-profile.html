@@ -2527,16 +2527,17 @@ function setupButtons(user){
   const profileFollowers=Array.isArray(user?.followers)
     ? user.followers
     : [];
+  const relationId=item=>String(item?._id || item?.id || item?.userId || item || "");
   const alreadyFollowing=Boolean(
     viewerId &&
     (
-      window.AIFTFollowFeedback?.hasRelation(viewerFollowing,profileUserId) ||
-      window.AIFTFollowFeedback?.hasRelation(profileFollowers,viewerId)
+      viewerFollowing.some(item=>relationId(item)===String(profileUserId)) ||
+      profileFollowers.some(item=>relationId(item)===String(viewerId))
     )
   );
   const alreadyRequested=Boolean(
     !alreadyFollowing &&
-    window.AIFTFollowFeedback?.hasRelation(viewerRequests,profileUserId)
+    viewerRequests.some(item=>relationId(item)===String(profileUserId))
   );
   [followBtn,mobileFollowBtn].forEach(button=>{
     if(button){
