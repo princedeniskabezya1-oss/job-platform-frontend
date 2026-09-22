@@ -612,6 +612,12 @@ color:#0f172a;
       border-color:#c7d2fe;
     }
 
+    .card-btn.requested{
+      background:#fff;
+      color:#737373;
+      border-color:#dbdbdb;
+    }
+
     .card-btn svg{
       width:15px;
       height:15px;
@@ -1625,9 +1631,26 @@ const users = await fetchJSON(networkUrl, {
       render();
     }
 
+    function relationId(item){
+      return String(
+        item?._id ||
+        item?.id ||
+        item?.userId ||
+        item ||
+        ""
+      );
+    }
+
     function isFollowing(user){
-      const following = safeArray(state.me?.following).map(String);
-      return following.includes(String(user._id));
+      const targetId=String(user?._id || "");
+      return safeArray(state.me?.following)
+        .some(item=>relationId(item)===targetId);
+    }
+
+    function isFollowRequested(user){
+      const targetId=String(user?._id || "");
+      return safeArray(state.me?.followRequestsSent)
+        .some(item=>relationId(item)===targetId);
     }
 
     function renderStats(){
@@ -1658,6 +1681,7 @@ const users = await fetchJSON(networkUrl, {
         const languages = safeArray(user.languages).slice(0,2);
         const followers = safeArray(user.followers).length;
         const following = isFollowing(user);
+        const requested = isFollowRequested(user);
         const verified = user.aiftVerified || user.aiftCertified;
 
 const banner =
@@ -1707,10 +1731,12 @@ return `
               </div>
 
               <div class="card-actions">
-                <button class="card-btn ${following ? "following" : "primary"}" data-follow-user="${escapeHTML(user._id)}" onclick="toggleFollow('${escapeHTML(user._id)}')">
+                <button class="card-btn ${following ? "following" : requested ? "requested" : "primary"}" data-follow-user="${escapeHTML(user._id)}" onclick="toggleFollow('${escapeHTML(user._id)}')">
                   ${following ? `
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
                     Following
+                  ` : requested ? `
+                    Requested
                   ` : `
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                     Follow
@@ -1731,50 +1757,79 @@ return `
     async function toggleFollow(userId){
   if(!requireLogin("follow people and build your network")) return;
 
+  const target = state.users.find(u => String(u._id) === String(userId));
+  const wasFollowing = Boolean(target && isFollowing(target));
+  const wasRequested = Boolean(target && isFollowRequested(target));
   const escapedId = CSS.escape(String(userId));
   const button = document.querySelector(`[data-follow-user="${escapedId}"]`);
-  const wasFollowing = button?.classList.contains("following");
-  window.AIFTFollowFeedback?.setLoading([button], wasFollowing ? "Updating" : "Following");
+
+  window.AIFTFollowFeedback?.setLoading(
+    [button],
+    wasFollowing ? "Updating" : "Following"
+  );
 
   try{
-        const res = await fetchJSON(`${API}/api/users/${userId}/follow`, {
-          method: "PATCH",
-          headers: authHeaders({ "Content-Type": "application/json" })
-        });
+    const res = await fetchJSON(`${API}/api/users/${userId}/follow`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" })
+    });
 
-        const target = state.users.find(u => String(u._id) === String(userId));
-        if(target){
-          const currentId = state.me?._id || localStorage.getItem("userId");
-          target.followers = safeArray(target.followers);
+    const isNowFollowing =
+      res.following === true ||
+      res.isFollowing === true ||
+      res.status === "followed";
 
-          if(res.following){
-            if(!target.followers.map(String).includes(String(currentId))){
-              target.followers.push(currentId);
-            }
-            state.me.following = safeArray(state.me.following);
-            if(!state.me.following.map(String).includes(String(userId))){
-              state.me.following.push(userId);
-            }
-            showToast("You are now following " + displayName(target));
-          }else{
-            target.followers = target.followers.filter(id => String(id) !== String(currentId));
-            state.me.following = safeArray(state.me.following).filter(id => String(id) !== String(userId));
-            showToast("You unfollowed " + displayName(target));
-          }
+    const isRequested =
+      res.requested === true ||
+      res.status === "requested";
 
-          els.statFollowing.textContent = safeArray(state.me.following).length;
-        }
+    if(target){
+      const currentId = state.me?._id || localStorage.getItem("userId");
+      const followers = safeArray(target.followers);
 
-        if(window.AIFTFollowFeedback){
-          await window.AIFTFollowFeedback.confirm([button], {following:Boolean(res.following)});
-        }
+      target.followers = isNowFollowing
+        ? followers.some(id => relationId(id) === String(currentId))
+          ? followers
+          : [...followers,currentId]
+        : followers.filter(id => relationId(id) !== String(currentId));
 
-        applyFilters();
-      }catch(err){
-        window.AIFTFollowFeedback?.reset([button], {following:Boolean(wasFollowing)});
-        showToast(err.message || "Follow failed");
-      }
+      window.AIFTFollowFeedback?.syncViewer(
+        state.me,
+        userId,
+        {following:isNowFollowing,requested:isRequested}
+      );
+
+      els.statFollowing.textContent = safeArray(state.me?.following).length;
     }
+
+    if(window.AIFTFollowFeedback){
+      await window.AIFTFollowFeedback.confirm([button], {
+        following:isNowFollowing,
+        requested:isRequested
+      });
+    }
+
+    applyFilters();
+
+    if(res.status === "requested"){
+      showToast("Follow request sent.");
+    }else if(res.status === "request_cancelled"){
+      showToast("Follow request cancelled.");
+    }else if(res.status === "unfollowed"){
+      showToast("You unfollowed " + displayName(target || {}));
+    }else{
+      showToast(isNowFollowing
+        ? "You are now following " + displayName(target || {})
+        : "Follow updated");
+    }
+  }catch(err){
+    window.AIFTFollowFeedback?.reset([button], {
+      following:wasFollowing,
+      requested:wasRequested
+    });
+    showToast(err.message || "Follow failed");
+  }
+}
 
     window.toggleFollow = toggleFollow;
 
@@ -1887,7 +1942,7 @@ function closeGuestModal(){
   </div>
 </div>
   
-<script src="aift-follow-feedback.js?v=20260922-1"></script>
+<script src="aift-follow-feedback.js?v=20260922-2"></script>
 <script src="shared-post-composer.js?v=20260921-direct-upload-1"></script>
 <script src="shared-mobile-navigation.js?v=20260921-three-pages-modal-hide-1"></script>
 <script src="aift-nav-badges.js?v=20260904-1"></script>

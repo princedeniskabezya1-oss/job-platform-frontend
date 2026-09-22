@@ -2423,7 +2423,9 @@ const followUser = async () => {
   }
 
   const buttons=[followBtn,desktopFollowBtn].filter(Boolean);
-  const wasFollowing=buttons.some(button=>button.textContent.trim()==="Following");
+  const currentLabel=buttons[0]?.textContent.trim() || "Follow";
+  const wasFollowing=currentLabel==="Following";
+  const wasRequested=currentLabel==="Requested";
   window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
 
   try{
@@ -2454,11 +2456,17 @@ const followUser = async () => {
     if(currentViewerId){
       const followersList=Array.isArray(user.followers) ? [...user.followers] : [];
       user.followers=isNowFollowing
-        ? followersList.some(item=>String(item?._id || item)===currentViewerId)
+        ? window.AIFTFollowFeedback?.hasRelation(followersList,currentViewerId)
           ? followersList
           : [...followersList,currentViewerId]
-        : followersList.filter(item=>String(item?._id || item)!==currentViewerId);
+        : followersList.filter(item=>window.AIFTFollowFeedback?.relationId(item)!==currentViewerId);
     }
+
+    window.AIFTFollowFeedback?.syncViewer(
+      viewer,
+      profileUserId || profileId,
+      {following:isNowFollowing,requested:isRequested}
+    );
 
     if(window.AIFTFollowFeedback){
       await window.AIFTFollowFeedback.confirm(buttons,{
@@ -2471,7 +2479,10 @@ const followUser = async () => {
     }
 
   }catch(err){
-    window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
+    window.AIFTFollowFeedback?.reset(buttons,{
+      following:wasFollowing,
+      requested:wasRequested
+    });
     alert(err.message);
   }
 };
@@ -2521,36 +2532,32 @@ if(isMobile){
 }
 
 const followers = Array.isArray(user.followers)
-  ? user.followers.map(f =>
-      String(
-        f?._id ||
-        f?.id ||
-        f?.userId ||
-        f
-      )
-    )
+  ? user.followers
   : [];
 
 const following = Array.isArray(viewer.following)
-  ? viewer.following.map(f =>
-      String(
-        f?._id ||
-        f?.id ||
-        f?.userId ||
-        f
-      )
-    )
+  ? viewer.following
   : [];
+
+const requests = Array.isArray(viewer.followRequestsSent)
+  ? viewer.followRequestsSent
+  : [];
+
+const relationId=item=>String(item?._id || item?.id || item?.userId || item || "");
 
 const isFollowing =
   viewerId &&
   (
-    followers.includes(String(viewerId)) ||
-    following.includes(String(profileUserId))
+    followers.some(item=>relationId(item)===String(viewerId)) ||
+    following.some(item=>relationId(item)===String(profileUserId))
   );
 
+const isRequested =
+  !isFollowing &&
+  requests.some(item=>relationId(item)===String(profileUserId));
+
   if(signedIn){
-    const followLabel=isFollowing ? "Following" : "Follow";
+    const followLabel=isFollowing ? "Following" : isRequested ? "Requested" : "Follow";
 
     if(isMobile){
       followBtn?.classList.remove("hidden");
@@ -3141,6 +3148,6 @@ init();
   window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
-<script src="aift-follow-feedback.js?v=20260922-1"></script>
+<script src="aift-follow-feedback.js?v=20260922-2"></script>
 </body>
 </html>
