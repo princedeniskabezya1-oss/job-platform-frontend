@@ -399,7 +399,22 @@
       if(event.origin!==location.origin)return;
       if(event.data?.type==="aift:composer-chrome"){
         composerChromeHidden=Boolean(event.data.hidden);
+
+        if(!composerChromeHidden){
+          sectionModalChromeHidden=false;
+        }
+
         setDashboardNavigationHidden(composerChromeHidden);
+
+        if(!composerChromeHidden){
+          const nav=document.querySelector(".aift-mobile-nav");
+          nav?.classList.remove(
+            "aift-mobile-nav--dashboard-hidden",
+            "aift-mobile-nav--hidden"
+          );
+          syncMobileNavVisibility();
+        }
+
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;
