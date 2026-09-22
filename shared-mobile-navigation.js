@@ -224,7 +224,6 @@
         "careers.html",
         "contact.html",
         "messages.html",
-        "profile.html",
         "public-profile.html",
         "agent-public-profile.html",
         "student-public-profile.html",
