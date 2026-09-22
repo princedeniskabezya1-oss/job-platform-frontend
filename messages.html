@@ -5560,5 +5560,52 @@
           if (event.target === event.currentTarget) closeConversationLibrary();
         });
     </script>
-  </body>
+  <script>
+(function keepMessagesMobileChromeClean(){
+  function hideMessagesBottomBar(){
+    document
+      .querySelectorAll(
+        ".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav"
+      )
+      .forEach(element=>element.remove());
+
+    if(document.body){
+      document.body.style.setProperty("padding-bottom","0","important");
+    }
+
+    if(window.parent!==window){
+      window.parent.postMessage(
+        {type:"aift:dashboard-chrome",hidden:true},
+        location.origin
+      );
+    }
+  }
+
+  hideMessagesBottomBar();
+
+  if(document.readyState==="loading"){
+    document.addEventListener(
+      "DOMContentLoaded",
+      hideMessagesBottomBar,
+      {once:true}
+    );
+  }
+
+  window.addEventListener("pageshow",hideMessagesBottomBar);
+
+  window.addEventListener(
+    "pagehide",
+    ()=>{
+      if(window.parent!==window){
+        window.parent.postMessage(
+          {type:"aift:dashboard-chrome",hidden:false},
+          location.origin
+        );
+      }
+    },
+    {once:true}
+  );
+})();
+</script>
+</body>
 </html>
