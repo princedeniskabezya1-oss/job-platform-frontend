@@ -1932,7 +1932,7 @@ async function runGlobalSearch(q){
     if(request !== searchRequest || document.getElementById("globalSearchInput")?.value.trim() !== q) return;
     const users = (data.users || []).filter(user => String(user.role || "").toLowerCase() !== "admin");
     const jobs = data.jobs || [];
-    const posts = data.posts || [];
+    const posts = isGuest() ? [] : (data.posts || []);
     searchResults = { users, jobs, posts };
     renderSearchPanel(q, users, jobs, posts);
 
@@ -2039,6 +2039,7 @@ const href = blocked.getAttribute?.("href") || "";
 
 const allowed =
   blocked.closest(".guest-gate-card") ||
+  blocked.closest(".search") ||
   blocked.closest(".brand") ||
   href.includes("network.html") ||
   href.includes("jobs.html");
