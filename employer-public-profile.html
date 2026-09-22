@@ -2670,10 +2670,8 @@ async function togglePersonFollow(personId, button){
   const person = state.people.find(item => String(item._id || item.id) === String(personId));
   if(!person || !personId || button?.disabled) return;
 
-  if(button){
-    button.disabled = true;
-    button.textContent = "Updating";
-  }
+  const wasFollowing=String(button?.textContent || "").trim()==="Following";
+  window.AIFTFollowFeedback?.setLoading([button],wasFollowing ? "Updating" : "Following");
 
   try{
     const result = await api(`/api/users/${encodeURIComponent(personId)}/follow`, {
@@ -2689,12 +2687,13 @@ async function togglePersonFollow(personId, button){
         : [...followers, viewerId]
       : followers.filter(item => String(item?._id || item) !== String(viewerId));
 
+    if(window.AIFTFollowFeedback){
+      await window.AIFTFollowFeedback.confirm([button],{following:Boolean(result.following)});
+    }
+
     renderPeople();
   }catch(err){
-    if(button){
-      button.disabled = false;
-      button.textContent = "Follow";
-    }
+    window.AIFTFollowFeedback?.reset([button],{following:wasFollowing});
     toast("Follow failed", err.message || "Unable to update this connection.", "error");
   }
 }
@@ -2817,6 +2816,13 @@ async function followCompany(){
     return goLogin();
   }
 
+  const mobileBtn=document.getElementById("followBtn");
+  const desktopBtn=document.getElementById("desktopCompanyFollowBtn");
+  const buttons=[mobileBtn,desktopBtn].filter(Boolean);
+  const wasFollowing=Boolean(state.following);
+
+  window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
+
   try{
 
     const res = await api(
@@ -2829,8 +2835,12 @@ async function followCompany(){
 
     state.following = !!res.following;
 
+    if(window.AIFTFollowFeedback){
+      await window.AIFTFollowFeedback.confirm(buttons,{following:state.following});
+    }
+
     renderHeader();
-updateOwnerUI();
+    updateOwnerUI();
 
     toast(
       "Updated",
@@ -2841,6 +2851,8 @@ updateOwnerUI();
     );
 
   }catch(err){
+
+    window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
 
     toast(
       "Follow failed",
@@ -2968,9 +2980,8 @@ if(isOwner){
     if(isLoggedIn){
       messageCompanyBtn?.classList.remove("hidden");
 
-      if(!state.following){
-        followBtn?.classList.remove("hidden");
-      }
+      followBtn?.classList.remove("hidden");
+      if(followBtn) followBtn.textContent=state.following ? "Following" : "Follow";
     }
   }else{
     desktopShareBtn?.classList.remove("hidden");
@@ -2978,9 +2989,8 @@ if(isOwner){
     if(isLoggedIn){
       desktopMessageBtn?.classList.remove("hidden");
 
-      if(!state.following){
-        desktopFollowBtn?.classList.remove("hidden");
-      }
+      desktopFollowBtn?.classList.remove("hidden");
+      if(desktopFollowBtn) desktopFollowBtn.textContent=state.following ? "Following" : "Follow";
     }
   }
 }
@@ -3534,5 +3544,6 @@ init();
   window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
+<script src="aift-follow-feedback.js?v=20260922-1"></script>
 </body>
 </html>
