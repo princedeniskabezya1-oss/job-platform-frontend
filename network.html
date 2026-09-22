@@ -1707,7 +1707,7 @@ return `
               </div>
 
               <div class="card-actions">
-                <button class="card-btn ${following ? "following" : "primary"}" onclick="toggleFollow('${escapeHTML(user._id)}')">
+                <button class="card-btn ${following ? "following" : "primary"}" data-follow-user="${escapeHTML(user._id)}" onclick="toggleFollow('${escapeHTML(user._id)}')">
                   ${following ? `
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
                     Following
@@ -1730,6 +1730,11 @@ return `
 
     async function toggleFollow(userId){
   if(!requireLogin("follow people and build your network")) return;
+
+  const escapedId = CSS.escape(String(userId));
+  const button = document.querySelector(`[data-follow-user="${escapedId}"]`);
+  const wasFollowing = button?.classList.contains("following");
+  window.AIFTFollowFeedback?.setLoading([button], wasFollowing ? "Updating" : "Following");
 
   try{
         const res = await fetchJSON(`${API}/api/users/${userId}/follow`, {
@@ -1760,8 +1765,13 @@ return `
           els.statFollowing.textContent = safeArray(state.me.following).length;
         }
 
+        if(window.AIFTFollowFeedback){
+          await window.AIFTFollowFeedback.confirm([button], {following:Boolean(res.following)});
+        }
+
         applyFilters();
       }catch(err){
+        window.AIFTFollowFeedback?.reset([button], {following:Boolean(wasFollowing)});
         showToast(err.message || "Follow failed");
       }
     }
@@ -1877,6 +1887,7 @@ function closeGuestModal(){
   </div>
 </div>
   
+<script src="aift-follow-feedback.js?v=20260922-1"></script>
 <script src="shared-post-composer.js?v=20260921-direct-upload-1"></script>
 <script src="shared-mobile-navigation.js?v=20260921-three-pages-modal-hide-1"></script>
 <script src="aift-nav-badges.js?v=20260904-1"></script>
