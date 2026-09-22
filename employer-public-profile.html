@@ -1854,6 +1854,7 @@ const state = {
   suggestions: [],
   publicStats: {},
   following: false,
+  followRequested: false,
   postSort: "recent",
   viewerFamilyEnrolled: false,
   viewerFamilyStatusReady: false
@@ -2062,11 +2063,51 @@ async function loadCompany(){
   state.people = Array.isArray(data.team) ? data.team : [];
   state.publicStats = data.stats || {};
 
-  state.following =
-    Array.isArray(state.company.followers) &&
-    state.company.followers.some(
-      u => String(u._id || u) === String(currentUserId())
-    );
+  if(token()){
+    try{
+      const viewerData = await api("/api/users/me", { headers:headers() });
+      state.viewer = normalizeShareUser(viewerData);
+      if(state.viewer?._id){
+        localStorage.setItem("userId",String(state.viewer._id));
+      }
+    }catch(error){
+      console.warn("Viewer follow state unavailable:",error?.message || error);
+    }
+  }
+
+  const viewerId=String(
+    state.viewer?._id ||
+    state.viewer?.id ||
+    currentUserId() ||
+    ""
+  );
+
+  const companyFollowers=Array.isArray(state.company.followers)
+    ? state.company.followers
+    : [];
+
+  const viewerFollowing=Array.isArray(state.viewer?.following)
+    ? state.viewer.following
+    : [];
+
+  const viewerRequests=Array.isArray(state.viewer?.followRequestsSent)
+    ? state.viewer.followRequestsSent
+    : [];
+
+  const relationId=item=>String(item?._id || item?.id || item?.userId || item || "");
+
+  state.following = Boolean(
+    viewerId &&
+    (
+      companyFollowers.some(item=>relationId(item)===viewerId) ||
+      viewerFollowing.some(item=>relationId(item)===String(state.companyId))
+    )
+  );
+
+  state.followRequested = Boolean(
+    !state.following &&
+    viewerRequests.some(item=>relationId(item)===String(state.companyId))
+  );
 
   state.suggestions = [
     ...(Array.isArray(state.company.following) ? state.company.following : []),
@@ -2205,7 +2246,12 @@ document.getElementById("companyMeta").innerHTML = "";
 const followBtn = document.getElementById("followBtn");
 
 if(followBtn){
-  followBtn.textContent = "+ Follow";
+  followBtn.textContent =
+    state.following
+      ? "Following"
+      : state.followRequested
+        ? "Requested"
+        : "Follow";
 }
 
   renderAssociatedPeople();
@@ -2820,6 +2866,7 @@ async function followCompany(){
   const desktopBtn=document.getElementById("desktopCompanyFollowBtn");
   const buttons=[mobileBtn,desktopBtn].filter(Boolean);
   const wasFollowing=Boolean(state.following);
+  const wasRequested=Boolean(state.followRequested);
 
   window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
 
@@ -2833,26 +2880,60 @@ async function followCompany(){
       }
     );
 
-    state.following = !!res.following;
+    state.following =
+      res.following === true ||
+      res.isFollowing === true ||
+      res.status === "followed";
+
+    state.followRequested =
+      res.requested === true ||
+      res.status === "requested";
+
+    window.AIFTFollowFeedback?.syncViewer(
+      state.viewer,
+      state.companyId,
+      {
+        following:state.following,
+        requested:state.followRequested
+      }
+    );
 
     if(window.AIFTFollowFeedback){
-      await window.AIFTFollowFeedback.confirm(buttons,{following:state.following});
+      await window.AIFTFollowFeedback.confirm(buttons,{
+        following:state.following,
+        requested:state.followRequested
+      });
     }
 
     renderHeader();
     updateOwnerUI();
 
+    const message =
+      res.status === "requested"
+        ? "Follow request sent."
+        : res.status === "request_cancelled"
+          ? "Follow request cancelled."
+          : res.status === "unfollowed"
+            ? "You unfollowed this company."
+            : state.following
+              ? "You are now following this company."
+              : "Follow updated.";
+
     toast(
       "Updated",
-      state.following
-        ? "You are now following this company."
-        : "You unfollowed this company.",
+      message,
       "success"
     );
 
   }catch(err){
 
-    window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
+    state.following=wasFollowing;
+    state.followRequested=wasRequested;
+
+    window.AIFTFollowFeedback?.reset(buttons,{
+      following:wasFollowing,
+      requested:wasRequested
+    });
 
     toast(
       "Follow failed",
@@ -2981,7 +3062,7 @@ if(isOwner){
       messageCompanyBtn?.classList.remove("hidden");
 
       followBtn?.classList.remove("hidden");
-      if(followBtn) followBtn.textContent=state.following ? "Following" : "Follow";
+      if(followBtn) followBtn.textContent=state.following ? "Following" : state.followRequested ? "Requested" : "Follow";
     }
   }else{
     desktopShareBtn?.classList.remove("hidden");
@@ -2990,7 +3071,7 @@ if(isOwner){
       desktopMessageBtn?.classList.remove("hidden");
 
       desktopFollowBtn?.classList.remove("hidden");
-      if(desktopFollowBtn) desktopFollowBtn.textContent=state.following ? "Following" : "Follow";
+      if(desktopFollowBtn) desktopFollowBtn.textContent=state.following ? "Following" : state.followRequested ? "Requested" : "Follow";
     }
   }
 }
