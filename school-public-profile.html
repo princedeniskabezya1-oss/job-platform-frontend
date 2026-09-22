@@ -5972,6 +5972,16 @@ async function followSchool(){
     return;
   }
 
+  const mobileBtn =
+    document.getElementById("followSchoolBtn");
+
+  const desktopBtn =
+    document.getElementById("desktopSchoolFollowBtn");
+
+  const buttons=[mobileBtn,desktopBtn].filter(Boolean);
+  const wasFollowing=buttons.some(button=>button.textContent.trim()==="Following");
+  window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
+
   try{
 
     const res = await fetch(
@@ -5991,23 +6001,53 @@ async function followSchool(){
       );
     }
 
-    const mobileBtn =
-      document.getElementById("followSchoolBtn");
+    const isRequested=
+      data?.requested===true ||
+      data?.status==="requested";
 
-    const desktopBtn =
-      document.getElementById("desktopSchoolFollowBtn");
+    const isNowFollowing=
+      data?.following===true ||
+      data?.isFollowing===true ||
+      data?.status==="followed";
 
-    [mobileBtn, desktopBtn].forEach(btn => {
+    const viewerId=String(
+      state.viewer?._id ||
+      state.viewer?.id ||
+      localStorage.getItem("userId") ||
+      ""
+    );
 
-      if(!btn) return;
+    if(viewerId && state.school){
+      const followers=Array.isArray(state.school.followers) ? [...state.school.followers] : [];
+      state.school.followers=isNowFollowing
+        ? followers.some(item=>String(item?._id || item)===viewerId)
+          ? followers
+          : [...followers,viewerId]
+        : followers.filter(item=>String(item?._id || item)!==viewerId);
+    }
 
-      btn.textContent =
-        data?.following
-          ? "Following"
-          : "Follow";
-    });
+    if(state.viewer){
+      const following=Array.isArray(state.viewer.following) ? [...state.viewer.following] : [];
+      state.viewer.following=isNowFollowing
+        ? following.some(item=>String(item?._id || item)===String(schoolId))
+          ? following
+          : [...following,schoolId]
+        : following.filter(item=>String(item?._id || item)!==String(schoolId));
+    }
+
+    if(window.AIFTFollowFeedback){
+      await window.AIFTFollowFeedback.confirm(buttons,{
+        following:isNowFollowing,
+        requested:isRequested
+      });
+    }else{
+      const text=isRequested ? "Requested" : isNowFollowing ? "Following" : "Follow";
+      buttons.forEach(button=>button.textContent=text);
+    }
 
   }catch(err){
+
+    window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
 
     alert(
       err.message ||
@@ -6153,6 +6193,26 @@ function setupOwnerButtons(){
 
     return;
   }
+
+  const schoolFollowers=Array.isArray(state.school?.followers)
+    ? state.school.followers.map(item=>String(item?._id || item?.id || item))
+    : [];
+
+  const viewerFollowing=Array.isArray(state.viewer?.following)
+    ? state.viewer.following.map(item=>String(item?._id || item?.id || item))
+    : [];
+
+  const isFollowingSchool=Boolean(
+    viewerId &&
+    (
+      schoolFollowers.includes(String(viewerId)) ||
+      viewerFollowing.includes(String(pageSchoolId))
+    )
+  );
+
+  const followLabel=isFollowingSchool ? "Following" : "Follow";
+  if(mobileFollowBtn) mobileFollowBtn.textContent=followLabel;
+  if(desktopFollowBtn) desktopFollowBtn.textContent=followLabel;
 
   if(isMobile){
 
@@ -7835,5 +7895,6 @@ document.addEventListener(
   window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
+<script src="aift-follow-feedback.js?v=20260922-1"></script>
 </body>
 </html>
