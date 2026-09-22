@@ -5979,7 +5979,9 @@ async function followSchool(){
     document.getElementById("desktopSchoolFollowBtn");
 
   const buttons=[mobileBtn,desktopBtn].filter(Boolean);
-  const wasFollowing=buttons.some(button=>button.textContent.trim()==="Following");
+  const currentLabel=buttons[0]?.textContent.trim() || "Follow";
+  const wasFollowing=currentLabel==="Following";
+  const wasRequested=currentLabel==="Requested";
   window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
 
   try{
@@ -6026,14 +6028,11 @@ async function followSchool(){
         : followers.filter(item=>String(item?._id || item)!==viewerId);
     }
 
-    if(state.viewer){
-      const following=Array.isArray(state.viewer.following) ? [...state.viewer.following] : [];
-      state.viewer.following=isNowFollowing
-        ? following.some(item=>String(item?._id || item)===String(schoolId))
-          ? following
-          : [...following,schoolId]
-        : following.filter(item=>String(item?._id || item)!==String(schoolId));
-    }
+    window.AIFTFollowFeedback?.syncViewer(
+      state.viewer,
+      schoolId,
+      {following:isNowFollowing,requested:isRequested}
+    );
 
     if(window.AIFTFollowFeedback){
       await window.AIFTFollowFeedback.confirm(buttons,{
@@ -6047,7 +6046,10 @@ async function followSchool(){
 
   }catch(err){
 
-    window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
+    window.AIFTFollowFeedback?.reset(buttons,{
+      following:wasFollowing,
+      requested:wasRequested
+    });
 
     alert(
       err.message ||
@@ -6199,18 +6201,27 @@ function setupOwnerButtons(){
     : [];
 
   const viewerFollowing=Array.isArray(state.viewer?.following)
-    ? state.viewer.following.map(item=>String(item?._id || item?.id || item))
+    ? state.viewer.following
+    : [];
+
+  const viewerRequests=Array.isArray(state.viewer?.followRequestsSent)
+    ? state.viewer.followRequestsSent
     : [];
 
   const isFollowingSchool=Boolean(
     viewerId &&
     (
       schoolFollowers.includes(String(viewerId)) ||
-      viewerFollowing.includes(String(pageSchoolId))
+      window.AIFTFollowFeedback?.hasRelation(viewerFollowing,pageSchoolId)
     )
   );
 
-  const followLabel=isFollowingSchool ? "Following" : "Follow";
+  const isRequestedSchool=Boolean(
+    !isFollowingSchool &&
+    window.AIFTFollowFeedback?.hasRelation(viewerRequests,pageSchoolId)
+  );
+
+  const followLabel=isFollowingSchool ? "Following" : isRequestedSchool ? "Requested" : "Follow";
   if(mobileFollowBtn) mobileFollowBtn.textContent=followLabel;
   if(desktopFollowBtn) desktopFollowBtn.textContent=followLabel;
 
