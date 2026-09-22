@@ -2516,6 +2516,25 @@ function setupButtons(user){
   const followBtn = document.getElementById("connectBtn");
   const mobileFollowBtn = document.getElementById("mobileConnectBtn");
 
+  const viewerId=state.viewer?._id || state.viewer?.id || localStorage.getItem("userId");
+  const profileUserId=user?._id || user?.id || profileId;
+  const viewerFollowing=Array.isArray(state.viewer?.following)
+    ? state.viewer.following.map(item=>String(item?._id || item?.id || item))
+    : [];
+  const profileFollowers=Array.isArray(user?.followers)
+    ? user.followers.map(item=>String(item?._id || item?.id || item))
+    : [];
+  const alreadyFollowing=Boolean(
+    viewerId &&
+    (
+      viewerFollowing.includes(String(profileUserId)) ||
+      profileFollowers.includes(String(viewerId))
+    )
+  );
+  [followBtn,mobileFollowBtn].forEach(button=>{
+    if(button) button.textContent=alreadyFollowing ? "Following" : "Follow";
+  });
+
 const shareProfile = () => {
   openProfileSharePanel();
 };
@@ -2535,6 +2554,10 @@ const shareProfile = () => {
       return;
     }
 
+    const buttons=[followBtn,mobileFollowBtn].filter(Boolean);
+    const wasFollowing=buttons.some(button=>button.textContent.trim()==="Following");
+    window.AIFTFollowFeedback?.setLoading(buttons,wasFollowing ? "Updating" : "Following");
+
     try{
       const res = await fetch(`${API}/api/users/${user._id || profileId}/follow`, {
         method:"PATCH",
@@ -2547,12 +2570,24 @@ const shareProfile = () => {
         throw new Error(data.message || "Follow failed");
       }
 
-      const text = data.following ? "Following" : "Follow";
+      const isRequested=data.requested===true || data.status==="requested";
+      const isNowFollowing=
+        data.following===true ||
+        data.isFollowing===true ||
+        data.status==="followed";
 
-      if(followBtn) followBtn.textContent = text;
-      if(mobileFollowBtn) mobileFollowBtn.textContent = text;
+      if(window.AIFTFollowFeedback){
+        await window.AIFTFollowFeedback.confirm(buttons,{
+          following:isNowFollowing,
+          requested:isRequested
+        });
+      }else{
+        const text=isRequested ? "Requested" : isNowFollowing ? "Following" : "Follow";
+        buttons.forEach(button=>button.textContent=text);
+      }
 
     }catch(err){
+      window.AIFTFollowFeedback?.reset(buttons,{following:wasFollowing});
       alert(err.message);
     }
   };
@@ -2684,5 +2719,6 @@ init();
   window.addEventListener("pagehide",()=>observer.disconnect(),{once:true});
 })();
 </script>
+<script src="aift-follow-feedback.js?v=20260922-1"></script>
 </body>
 </html>
