@@ -438,9 +438,7 @@
           return;
         }
         const nav=document.querySelector(".aift-mobile-nav");
-        // The section scroll state belongs to the top bar. Keeping it on the
-        // shared bottom bar can hide the bar again immediately after a composer closes.
-        nav?.classList.remove("aift-mobile-nav--hidden");
+        nav?.classList.toggle("aift-mobile-nav--hidden",composerChromeHidden || Boolean(event.data.hidden));
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;

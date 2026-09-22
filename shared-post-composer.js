@@ -180,6 +180,9 @@
     resetStartPostModal();
     document.getElementById("startPostModal")?.classList.remove("show");
     document.body.classList.remove("start-post-open");
+    if(typeof window.setStartPostNavigationHidden === "function"){
+      window.setStartPostNavigationHidden(false);
+    }
   };
 
   window.previewStartPostMedia = function(){
