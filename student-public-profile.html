@@ -2723,19 +2723,21 @@ if(isMobile){
       ? state.viewer.followRequestsSent
       : [];
 
+  const relationId=item=>String(item?._id || item?.id || item?.userId || item || "");
+
   const alreadyFollowing =
     Boolean(
       viewerId &&
       (
-        window.AIFTFollowFeedback?.hasRelation(followers,viewerId) ||
-        window.AIFTFollowFeedback?.hasRelation(following,profileUserId)
+        followers.some(item=>relationId(item)===String(viewerId)) ||
+        following.some(item=>relationId(item)===String(profileUserId))
       )
     );
 
   const alreadyRequested =
     Boolean(
       !alreadyFollowing &&
-      window.AIFTFollowFeedback?.hasRelation(requests,profileUserId)
+      requests.some(item=>relationId(item)===String(profileUserId))
     );
 
 
