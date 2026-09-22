@@ -287,7 +287,6 @@
 
   function closeSection(){
     sectionNavHidden=false;
-    composerChromeHidden=false;
     modalChromeHidden=false;
     sectionModalChromeHidden=false;
     syncMobileNavVisibility();
@@ -323,7 +322,6 @@
       return;
     }
     const file=url.pathname.split("/").pop()||"home.html";
-    if(url.searchParams.get("compose")!=="1")composerChromeHidden=false;
     sectionNavHidden=!primaryNavPages.has(file);
     modalChromeHidden=false;
     sectionModalChromeHidden=false;
@@ -400,9 +398,6 @@
     addEventListener("message",event=>{
       if(event.origin!==location.origin)return;
       if(event.data?.type==="aift:composer-chrome"){
-        const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current,.aift-section-view.is-pending"))
-          .find(item=>item.contentWindow===event.source);
-        if(!frame)return;
         composerChromeHidden=Boolean(event.data.hidden);
 
         if(!composerChromeHidden){
@@ -430,9 +425,6 @@
         return;
       }
       if(event.data?.type==="aift:dashboard-chrome"){
-        const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current,.aift-section-view.is-pending"))
-          .find(item=>item.contentWindow===event.source);
-        if(!frame)return;
         setDashboardNavigationHidden(event.data.hidden);
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
