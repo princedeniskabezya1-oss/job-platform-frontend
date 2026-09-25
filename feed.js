@@ -700,11 +700,16 @@ function getVideoPosts(){
   return videos;
 }
 function setReelBottomNavHidden(hidden){
-  const nav = document.querySelector(".aift-mobile-nav");
+  const nav = document.querySelector(".aift-mobile-nav") ||
+    (window.parent !== window
+      ? window.parent.document?.querySelector(".aift-mobile-nav")
+      : null);
   if(nav){
     if(hidden){
-      nav.style.display = "none";
-    }else{
+      nav.dataset.aiftReelHidden = "true";
+      nav.style.setProperty("display", "none", "important");
+    }else if(nav.dataset.aiftReelHidden === "true"){
+      delete nav.dataset.aiftReelHidden;
       nav.style.removeProperty("display");
     }
   }
