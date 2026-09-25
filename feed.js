@@ -680,9 +680,24 @@ function installPullToRefresh(){
 }
 
 function getVideoPosts(){
-  return state.posts.filter(post =>
-    getMediaItems(post).some(item => item.type === "video")
-  );
+  const videos = [];
+  const included = new Set();
+
+  state.posts.forEach(post => {
+    const videoPost = getMediaItems(post).some(item => item.type === "video")
+      ? post
+      : post.repostOf && getMediaItems(post.repostOf).some(item => item.type === "video")
+        ? post.repostOf
+        : null;
+
+    const id = String(videoPost?._id || "");
+    if(!id || included.has(id)) return;
+
+    included.add(id);
+    videos.push(videoPost);
+  });
+
+  return videos;
 }
 function setReelBottomNavHidden(hidden){
   const nav = document.querySelector(".aift-mobile-nav");
